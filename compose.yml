@@ -4,13 +4,14 @@ services:
     container_name: mc-anvil-db
     restart: unless-stopped
     cap_add:
-      - SYS_ADMIN        # Allow Host Mount
+      - SYS_ADMIN
     devices:
       - /dev/fuse
     security_opt:
       - apparmor:unconfined
+    env_file: .env
     environment:
-      - REDIS_URL=redis://redis:6379 
+      - RUST_LOG=info
     volumes:
       - type: bind
         source: ./fuse_region
@@ -23,18 +24,32 @@ services:
       timeout: 3s
       retries: 10
     depends_on:
-      redis:
+      db:
         condition: service_healthy
-  redis:
-    image: redis:8-alpine
-    command: redis-server --appendonly yes
+
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: mc_anvil_db_postgres
+    restart: always
+    env_file: .env
+    volumes:
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
-      retries: 3
-    volumes:
-      - redis_data:/data
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
   minecraft:
     image: itzg/minecraft-server:java21-alpine
     pull_policy: daily
@@ -58,5 +73,5 @@ services:
         condition: service_healthy
 
 volumes:
-  redis_data:
+  db_data:
   minecraft_data:

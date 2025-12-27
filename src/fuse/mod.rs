@@ -24,17 +24,19 @@ use inode::InodeMap;
 /// TTL for cached file attributes.
 const TTL: Duration = Duration::from_secs(1);
 
-/// Virtual file size for region files (10 MB).
-const VIRTUAL_FILE_SIZE: u64 = 10 * 1024 * 1024;
+/// Virtual file size for region files.
+/// 1024 chunks * 128KB (32 sectors) + 8KB header = ~134 MB.
+/// We use a safe upper bound.
+const VIRTUAL_FILE_SIZE: u64 = 1024 * 32 * 4096 + 8192;
 
 /// FUSE filesystem for Minecraft Anvil regions.
-pub struct AnvilFS<S: ChunkStorage> {
+pub struct AnvilFS {
     inodes: InodeMap,
-    chunks: ChunkProvider<S>,
+    chunks: ChunkProvider,
 }
 
-impl<S: ChunkStorage + 'static> AnvilFS<S> {
-    pub fn new(storage: Arc<S>) -> Self {
+impl AnvilFS {
+    pub fn new(storage: Arc<dyn ChunkStorage>) -> Self {
         Self {
             inodes: InodeMap::new(),
             chunks: ChunkProvider::new(storage),
@@ -87,28 +89,51 @@ impl<S: ChunkStorage + 'static> AnvilFS<S> {
         let size = buf.len();
         let end = offset + size;
 
+        // Fetch present chunks from storage (one query per read request is robust, though cacheable)
+        // Optimization: For now we query every time.
+        let present_coords = self.chunks.get_storage().get_region_chunks(region);
+        let present_indices: Vec<usize> = present_coords.iter()
+            .map(|p| {
+                 let lx = p.x - region.x * 32;
+                 let lz = p.z - region.z * 32;
+                 region::local_to_index(lx, lz)
+            })
+            .collect();
+            
+        // Debug
+        // log::info!("Reading region {:?}. Present chunks: {}", region, present_indices.len());
+
         // Zone A: Header (0 - HEADER_SIZE)
         if offset < HEADER_SIZE {
-            let header = Header::generate();
-            let copy_start = offset;
-            let copy_end = std::cmp::min(end, HEADER_SIZE);
-            let copy_len = copy_end - copy_start;
-            buf[..copy_len].copy_from_slice(&header[copy_start..copy_end]);
+            let header = Header::get_range(&present_indices, offset, size);
+            let copy_len = std::cmp::min(header.len(), buf.len());
+            buf[..copy_len].copy_from_slice(&header[..copy_len]);
         }
 
         // Zone B: Chunk data (HEADER_SIZE+)
         if end > HEADER_SIZE {
+            let chunk_size = SECTOR_SIZE * crate::region::CHUNK_STRIDE as usize;
+            
             let data_start = std::cmp::max(offset, HEADER_SIZE);
-            let first_chunk = (data_start - HEADER_SIZE) / SECTOR_SIZE;
-            let last_chunk = (end - HEADER_SIZE - 1) / SECTOR_SIZE;
+            let first_chunk = (data_start - HEADER_SIZE) / chunk_size;
+            let last_chunk = (end - HEADER_SIZE - 1) / chunk_size;
 
             for chunk_idx in first_chunk..=last_chunk {
                 if chunk_idx >= 1024 {
                     break;
                 }
+                
+                // Skip if not present in our list
+                if !present_indices.contains(&chunk_idx) {
+                    continue; // Leave buffer as zeros (empty)
+                }
 
-                let chunk_file_start = HEADER_SIZE + chunk_idx * SECTOR_SIZE;
-                let chunk_file_end = chunk_file_start + SECTOR_SIZE;
+                // Virtual file layout based on fixed stride
+                let chunk_sector_start = 2 + chunk_idx as u32 * region::CHUNK_STRIDE;
+                let chunk_sector_count = region::CHUNK_STRIDE; // 128KB max
+
+                let chunk_file_start = (chunk_sector_start as usize) * SECTOR_SIZE;
+                let chunk_file_end = chunk_file_start + (chunk_sector_count as usize) * SECTOR_SIZE;
 
                 let overlap_start = std::cmp::max(offset, chunk_file_start);
                 let overlap_end = std::cmp::min(end, chunk_file_end);
@@ -121,21 +146,23 @@ impl<S: ChunkStorage + 'static> AnvilFS<S> {
                 let (local_x, local_z) = region::index_to_local(chunk_idx);
                 let (world_x, world_z) = region.local_to_world(local_x, local_z);
 
-                // Get chunk data (from storage or generated)
+                // Get chunk data (from storage)
                 let pos = crate::storage::ChunkPos::new(world_x, world_z);
                 
-                // Propagate errors from generation
-                let blob = self.chunks.get_chunk(pos)?;
+                // Only get if it exists
+                if let Ok(blob) = self.chunks.get_chunk(pos) {
+                   if blob.is_empty() { continue; }
 
-                // Copy relevant portion
-                let blob_start = overlap_start - chunk_file_start;
-                let blob_end = overlap_end - chunk_file_start;
-                let result_start = overlap_start - offset;
+                    // Copy relevant portion
+                    let blob_start = overlap_start - chunk_file_start;
+                    let blob_end = overlap_end - chunk_file_start;
+                    let result_start = overlap_start - offset;
 
-                for i in blob_start..blob_end {
-                    let result_idx = result_start + (i - blob_start);
-                    if result_idx < size && i < blob.len() {
-                        buf[result_idx] = blob[i];
+                    for i in blob_start..blob_end {
+                        let result_idx = result_start + (i - blob_start);
+                        if result_idx < size && i < blob.len() {
+                            buf[result_idx] = blob[i];
+                        }
                     }
                 }
             }
@@ -145,7 +172,7 @@ impl<S: ChunkStorage + 'static> AnvilFS<S> {
     }
 }
 
-impl<S: ChunkStorage + 'static> Filesystem for AnvilFS<S> {
+impl Filesystem for AnvilFS {
     fn getattr(&mut self, _req: &Request, ino: u64, _fh: Option<u64>, reply: ReplyAttr) {
         if ino == 1 {
             reply.attr(&TTL, &Self::root_attr());
@@ -223,15 +250,37 @@ impl<S: ChunkStorage + 'static> Filesystem for AnvilFS<S> {
         _req: &Request,
         _ino: u64,
         _fh: u64,
-        _offset: i64,
+        offset: i64,
         data: &[u8],
         _write_flags: u32,
         _flags: i32,
         _lock_owner: Option<u64>,
         reply: fuser::ReplyWrite,
     ) {
-        // TODO: Parse incoming chunk data and save to storage
-        reply.written(data.len() as u32);
+        log::info!("FUSE WRITE: offset={}, len={}", offset, data.len());
+
+        // We only care about chunk data writes, not header updates.
+        // Chunk data usually starts after the standard header (8192 bytes).
+        if offset >= 8192 && data.len() > 5 {
+             match self.chunks.save_chunk(data) {
+                Ok(_) => {
+                    log::info!("Chunk save successful");
+                    reply.written(data.len() as u32);
+                },
+                Err(e) => {
+                    log::warn!("Failed to save chunk at offset {}: {}", offset, e);
+                    reply.written(data.len() as u32);
+                }
+             }
+        } else {
+            if offset < 8192 {
+                log::info!("Ignoring header write at {}", offset);
+            } else {
+                log::info!("Ignoring small/invalid write at {}, len={}", offset, data.len());
+            }
+            // Ignore header writes or tiny fragments
+            reply.written(data.len() as u32);
+        }
     }
 
     fn release(
@@ -267,5 +316,48 @@ impl<S: ChunkStorage + 'static> Filesystem for AnvilFS<S> {
         reply: fuser::ReplyEmpty,
     ) {
         reply.ok();
+    }
+
+    fn mknod(
+        &mut self,
+        _req: &Request,
+        _parent: u64,
+        _name: &OsStr,
+        _mode: u32,
+        _u: u32,
+        _rdev: u32,
+        reply: fuser::ReplyEntry,
+    ) {
+        reply.error(libc::EPERM);
+    }
+
+    fn create(
+        &mut self,
+        _req: &Request,
+        _parent: u64,
+        _name: &OsStr,
+        _mode: u32,
+        _u: u32,
+        _flags: i32,
+        reply: fuser::ReplyCreate,
+    ) {
+        reply.error(libc::EPERM);
+    }
+
+    fn unlink(&mut self, _req: &Request, _parent: u64, _name: &OsStr, reply: fuser::ReplyEmpty) {
+        reply.error(libc::EPERM);
+    }
+
+    fn rename(
+        &mut self,
+        _req: &Request,
+        _parent: u64,
+        _name: &OsStr,
+        _newparent: u64,
+        _newname: &OsStr,
+        _flags: u32,
+        reply: fuser::ReplyEmpty,
+    ) {
+        reply.error(libc::EPERM);
     }
 }

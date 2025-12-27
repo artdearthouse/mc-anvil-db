@@ -29,7 +29,7 @@ This project creates a virtual filesystem that Minecraft servers can use as thei
 │  (src/region/)    │  (src/chunk/)                   │
 ├───────────────────┴─────────────────────────────────┤
 │                 Storage Backend                      │
-│     Memory │ Redis (TODO) │ PostgreSQL (TODO)       │
+│     Memory │ Redis (TODO) │ PostgreSQL (Done)       │
 │              (src/storage/)                         │
 └─────────────────────────────────────────────────────┘
 ```
@@ -107,7 +107,8 @@ pub trait ChunkStorage: Send + Sync {
 4. **Return MCA-formatted data** → Minecraft loads chunks
 5. **Minecraft saves changes** → We capture and store them
 
-Currently, writes are accepted but discarded (no persistence). Adding Redis/Postgres storage will enable persistence.
+Currently, basic read/write works with PostgreSQL, but complex chunks (with block data) may fail due to NBT serialization issues.
+Persistence is enabled via `DATABASE_URL`.
 
 ## Configuration
 

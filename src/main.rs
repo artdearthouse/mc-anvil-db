@@ -26,8 +26,17 @@ fn main() {
         MountOption::AllowOther,
     ];
 
-    // Create storage backend
-    let storage = Arc::new(MemoryStorage::new());
+    // Create storage backend based on environment
+    let storage: Arc<dyn crate::storage::ChunkStorage> = match std::env::var("DATABASE_URL") {
+        Ok(url) => {
+            log::info!("Using PostgreSQL storage: {}", url);
+            Arc::new(crate::storage::PostgresStorage::new(&url))
+        },
+        Err(_) => {
+            log::warn!("DATABASE_URL not found. Using in-memory storage (data will be lost on exit!)");
+            Arc::new(MemoryStorage::new())
+        }
+    };
 
     // Create filesystem
     let fs = AnvilFS::new(storage);

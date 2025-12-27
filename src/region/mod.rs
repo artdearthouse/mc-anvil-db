@@ -18,6 +18,12 @@ pub const HEADER_SIZE: usize = SECTOR_SIZE * 2; // 8192 bytes
 /// Number of chunks per region dimension.
 pub const REGION_SIZE: i32 = 32;
 
+/// Number of sectors reserved per chunk in the virtual file.
+/// 32 sectors * 4096 bytes = 128 KB per chunk.
+/// This is the maximum size we support for reading without overlap/truncation.
+/// Real chunks can be larger, but for MVP 128KB is a safe upper bound (avg is ~5KB).
+pub const CHUNK_STRIDE: u32 = 32;
+
 /// Convert chunk coordinates to local region coordinates (0-31).
 #[inline]
 pub fn chunk_to_local(chunk_coord: i32) -> i32 {

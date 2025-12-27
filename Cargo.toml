@@ -12,5 +12,13 @@ log = "0.4"
 fastnbt = "2.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_bytes = "0.11"
+serde_json = "1.0"
 # for compression 
 flate2 = "1.1"
+
+# Async & Database
+tokio = { version = "1", features = ["full"] }
+tokio-postgres = { version = "0.7", features = ["with-serde_json-1"] }
+deadpool-postgres = "0.12"
+postgis = "0.9" # Optional for types, good to have
+hex = "0.4"

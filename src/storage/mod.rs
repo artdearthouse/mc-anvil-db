@@ -1,11 +1,9 @@
-//! Storage backends for chunk data persistence.
-//!
-//! This module provides a trait-based abstraction for storing and retrieving
-//! chunk data. Implementations can use various backends (memory, Redis, PostgreSQL).
-
 mod memory;
+mod postgres;
+
 
 pub use memory::MemoryStorage;
+pub use postgres::PostgresStorage;
 
 /// Coordinates for a chunk in the world.
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -46,4 +44,8 @@ pub trait ChunkStorage: Send + Sync {
 
     /// Get all stored chunk positions (for debugging/admin).
     fn list_chunks(&self) -> Vec<ChunkPos>;
+
+    /// Get all existing chunks within a specific region.
+    /// Used to generate the region header.
+    fn get_region_chunks(&self, region: crate::region::RegionPos) -> Vec<ChunkPos>;
 }

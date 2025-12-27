@@ -13,34 +13,31 @@ use super::{SECTOR_SIZE, HEADER_SIZE};
 pub struct Header;
 
 impl Header {
-    /// Generate complete header (8192 bytes).
-    pub fn generate() -> Vec<u8> {
+    /// Generate sparse header based on present chunks.
+    pub fn generate(present_chunks: &[usize]) -> Vec<u8> {
         let mut header = vec![0u8; HEADER_SIZE];
 
         // Location table (first 4096 bytes)
-        // Each entry: 3 bytes offset + 1 byte sector count
-        for i in 0..1024u32 {
-            // Each chunk starts at sector (2 + i)
-            // Sector 0-1 are the header itself
-            let sector_offset = 2 + i;
-            let sector_count: u8 = 1;
+        for &chunk_index in present_chunks {
+            // Calculate virtual sector offset.
+            // We use a fixed stride to allow larger chunks.
+            // Old generic: 2 + i. New: 2 + i * STRIDE.
+            let sector_offset = 2 + chunk_index as u32 * crate::region::CHUNK_STRIDE;
+            let sector_count: u8 = crate::region::CHUNK_STRIDE as u8; 
 
-            let entry_offset = (i as usize) * 4;
+            let entry_offset = chunk_index * 4;
             header[entry_offset] = ((sector_offset >> 16) & 0xFF) as u8;
             header[entry_offset + 1] = ((sector_offset >> 8) & 0xFF) as u8;
             header[entry_offset + 2] = (sector_offset & 0xFF) as u8;
             header[entry_offset + 3] = sector_count;
         }
 
-        // Timestamp table (second 4096 bytes) - all zeros
-        // Already initialized to 0
-
         header
     }
 
     /// Get a slice of the header for a specific byte range.
-    pub fn get_range(offset: usize, size: usize) -> Vec<u8> {
-        let header = Self::generate();
+    pub fn get_range(present_chunks: &[usize], offset: usize, size: usize) -> Vec<u8> {
+        let header = Self::generate(present_chunks);
         let end = std::cmp::min(offset + size, HEADER_SIZE);
         if offset >= HEADER_SIZE {
             vec![0u8; size]

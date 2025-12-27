@@ -1,1 +1,9 @@
 /target
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# data
+fuse_region/

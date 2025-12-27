@@ -6,7 +6,7 @@ use std::io::Write;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 
-use crate::nbt::{ChunkData, Section, BlockStates, Biomes, BlockState, DATA_VERSION};
+use crate::nbt::{ChunkData, Section, BlockStates, Biomes, BlockState, get_data_version};
 
 /// Procedural chunk generator.
 ///
@@ -41,22 +41,26 @@ impl Generator {
 
             sections.push(Section {
                 y: section_y,
-                block_states: BlockStates { palette },
-                biomes: Biomes {
+                block_states: Some(BlockStates { 
+                    palette,
+                    data: None, // Single entry palette, no data needed
+                }),
+                biomes: Some(Biomes {
                     palette: vec!["minecraft:plains".to_string()],
-                },
+                    data: None,
+                }),
             });
         }
 
         let chunk = ChunkData {
-            data_version: DATA_VERSION,
+            data_version: get_data_version(),
             x_pos: chunk_x,
             z_pos: chunk_z,
             y_pos: -4,
             status: "minecraft:full".to_string(),
             last_update: 0,
             inhabited_time: 0,
-            is_light_on: 1,
+            is_light_on: Some(1),
             sections,
         };
 

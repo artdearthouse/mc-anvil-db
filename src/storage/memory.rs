@@ -45,7 +45,18 @@ impl ChunkStorage for MemoryStorage {
     }
 
     fn list_chunks(&self) -> Vec<ChunkPos> {
-        self.chunks.read().unwrap().keys().copied().collect()
+        self.chunks.read().unwrap().keys().cloned().collect()
+    }
+
+    fn get_region_chunks(&self, region: crate::region::RegionPos) -> Vec<ChunkPos> {
+        self.chunks.read().unwrap()
+            .keys()
+            .filter(|p| {
+                crate::region::chunk_to_region(p.x) == region.x && 
+                crate::region::chunk_to_region(p.z) == region.z
+            })
+            .cloned()
+            .collect()
     }
 }
 
