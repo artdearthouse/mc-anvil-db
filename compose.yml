@@ -67,7 +67,7 @@ services:
         bind:
           propagation: rslave
     depends_on:
-      postgres:
+      mc-anvil-db:
         condition: service_healthy
 
 volumes:
