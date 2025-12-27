@@ -14,9 +14,14 @@ const OFFSET: i32 = 500_000_000;
 const MASK: u64 = 0x3FFFFFFF; // 30 bits
 
 pub const REGION_INODE_START: u64 = 0x8000_0000_0000_0000;
+pub const GENERIC_INODE_START: u64 = 0x4000_0000_0000_0000;
 
 pub fn is_region_inode(ino: u64) -> bool {
     (ino & REGION_INODE_START) != 0
+}
+
+pub fn is_generic_inode(ino: u64) -> bool {
+    (ino & GENERIC_INODE_START) != 0
 }
 
 pub fn pack(x: i32, z: i32) -> u64 {
@@ -25,6 +30,23 @@ pub fn pack(x: i32, z: i32) -> u64 {
     let z_enc = (z + OFFSET) as u64 & MASK;
     
     REGION_INODE_START | (x_enc << 32) | z_enc
+}
+
+// FNV-1a 64-bit hash
+fn fnv1a_hash(text: &str) -> u64 {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in text.bytes() {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(0x1099511628211);
+    }
+    hash
+}
+
+pub fn pack_generic(name: &str) -> u64 {
+    let hash = fnv1a_hash(name);
+    // Mask to 62 bits to avoid colliding with flags (top 2 bits)
+    // Actually we just set the second highest bit
+    GENERIC_INODE_START | (hash & 0x3FFF_FFFF_FFFF_FFFF)
 }
 
 pub fn unpack(ino: u64) -> Option<(i32, i32)> {
@@ -66,6 +88,21 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_generic_inodes() {
+        let name = "backup.mca";
+        let ino = pack_generic(name);
+        assert!(is_generic_inode(ino));
+        assert!(!is_region_inode(ino));
+        
+        // Hash stability check (FNV-1a of "backup.mca" should be stable)
+        let ino2 = pack_generic(name);
+        assert_eq!(ino, ino2);
+        
+        let name2 = "other.file";
+        let ino3 = pack_generic(name2);
+        assert_ne!(ino, ino3);
+    }
     #[test]
     fn test_system_inode() {
         assert!(!is_region_inode(1));
