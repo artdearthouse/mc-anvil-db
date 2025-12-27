@@ -50,7 +50,6 @@ services:
 
   minecraft:
     image: itzg/minecraft-server:java21-alpine
-    pull_policy: daily
     tty: true
     stdin_open: true
     ports:
