@@ -1,5 +1,5 @@
 use fuser::{FileAttr, FileType, Filesystem, Request};
-use libc::ENOENT;
+use libc::{ENOENT, ENODATA};
 use std::ffi::OsStr;
 use std::time::{Duration, UNIX_EPOCH, SystemTime};
 use crate::region;
@@ -292,6 +292,57 @@ impl Filesystem for McFUSE {
              reply.data(&self.virtual_file.read_at(offset, size, x, z));
         } else {
             reply.data(&[]);
+        }
+    }
+
+    // 6. FLUSH (Called on close)
+    fn flush(
+        &mut self,
+        _req: &Request,
+        ino: u64,
+        _fh: u64,
+        _lock_owner: u64,
+        reply: fuser::ReplyEmpty,
+    ) {
+        if inode::is_region_inode(ino) {
+            reply.ok();
+        } else {
+            reply.error(ENOENT);
+        }
+    }
+
+    // 7. FSYNC (Sync data to disk)
+    fn fsync(
+        &mut self,
+        _req: &Request,
+        ino: u64,
+        _fh: u64,
+        _datasync: bool,
+        reply: fuser::ReplyEmpty,
+    ) {
+        if inode::is_region_inode(ino) {
+            reply.ok();
+        } else {
+            reply.error(ENOENT);
+        }
+    }
+
+
+    // 8. GETXATTR (Extended attributes)
+    fn getxattr(
+        &mut self,
+        _req: &Request,
+        ino: u64,
+        _name: &OsStr,
+        _size: u32,
+        reply: fuser::ReplyXattr,
+    ) {
+         if inode::is_region_inode(ino) || ino == 1 {
+            // We don't support extended attributes.
+            // Return ENODATA (Attribute not found)
+            reply.error(ENODATA);
+        } else {
+            reply.error(ENOENT);
         }
     }
 }
