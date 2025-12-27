@@ -1,6 +1,6 @@
 # mc-anvil-db
 
-A FUSE-based virtual filesystem for Minecraft that intercepts and simulates `.mca` region files. It provides a programmable storage layer for the Anvil format, enabling on-the-fly chunk generation, remote database backends, and virtualized world management with minimal local disk footprint.
+A FUSE-based virtual filesystem for Minecraft that intercepts and simulates `.mca` region files. It provides a programmable storage layer for the Anvil format, enabling on-the-fly chunk generation, ~~remote database backends~~, and virtualized world management with minimal local disk footprint.
 
 This screenshot shows a **Stateless Infinite Flat World Generator** - world don't really exists as file, it's just a fully procedural generation of chunks on the fly.
 ![Infinite Flat World Demo](demo/infinity_flat_demo.png) 
