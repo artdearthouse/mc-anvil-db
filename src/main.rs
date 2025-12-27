@@ -11,13 +11,19 @@ pub struct Args {
     pub mountpoint: PathBuf,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::init();
     let args = Args::parse();
-    
+
+    use fuser::MountOption;
     let options = vec![];
 
-    println!("Mounting FUSE to {:?}", args.mountpoint);
+    println!("Mounting FUSE to {:?} (Background)", args.mountpoint);
     
-    fuser::mount2(McFUSE, &args.mountpoint, &options).unwrap();
+    let _session = fuser::spawn_mount2(McFUSE, &args.mountpoint, &options).unwrap();
+
+    println!("Mounted successfully! Press Ctrl+C to unmount");
+    
+    tokio::signal::ctrl_c().await.expect("failed to install CTRL+C signal handler");
 }
