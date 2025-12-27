@@ -6,12 +6,12 @@ FUSE-based virtual filesystem for Minecraft that emulate *.mca region files but 
 ## Overview
 
 **Key Features:**
-- [] 🚀 Infinite World Feature without real .mca files on disk
-- [] 📁 Anvil format compatibility (potentially works with any Minecraft Java Edition, but 1.21.11 considered as a goal for now)
-- [] 🔌 Pluggable abstract storage backends (Memory, Redis, PostgreSQL) so Minecraft can read chunks from any storage backend without knowing the storage backend.
-- [] 🐳 Docker-first with proper FUSE support
-- [] Minecraft world is potentially queriable via PostgreSQL 
-- [] Potentially we can use same map on different servers
+- [ ] 🚀 Infinite World Feature without real .mca files on disk
+- [ ] 📁 Anvil format compatibility (potentially works with any Minecraft Java Edition, but 1.21.11 considered as a goal for now)
+- [ ] 🔌 Pluggable abstract storage backends (Memory, Redis, PostgreSQL) so Minecraft can read chunks from any storage backend without knowing the storage backend.
+- [ ] 🐳 Docker-first with proper FUSE support
+- [ ] Minecraft world is potentially queriable via PostgreSQL 
+- [ ] Potentially we can use same map on different servers simultaneously
 
 ## Architecture
 
@@ -99,8 +99,9 @@ Environment variables:
 ## Requirements
 
 - Rust 1.92+
-- FUSE 3 (`libfuse3-dev` on Debian/Ubuntu)
+- FUSE 3 (fuse3 on Fedora (tested), libfuse3-dev on Debian/Ubuntu (not tested))
 - Docker & Docker Compose (for containerized setup)
+- Linux
 
 ## License
 
