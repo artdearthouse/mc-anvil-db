@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MOUNTPOINT="/mnt/region"
+MOUNTPOINT="/mnt/world"
 
 cleanup() {
     echo "Received shutdown signal, unmounting..."
