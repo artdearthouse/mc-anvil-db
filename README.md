@@ -1,23 +1,24 @@
 # mc-anvil-db
 
-FUSE-based virtual filesystem for Minecraft that generates world chunks procedurally on-the-fly.
+FUSE-based virtual filesystem for Minecraft that emulate *.mca region files but instead of storing real .mca files on disk, chunks are read from Memory, Redis or PostgreSQL.
+
 
 ## Overview
 
-This project creates a virtual filesystem that Minecraft servers can use as their `region/` folder. Instead of storing real `.mca` files on disk, chunks are generated procedurally when requested and served directly from memory.
-
 **Key Features:**
-- 🚀 Procedural chunk generation (infinite world potential)
-- 📁 Anvil format compatibility (works with Paper/Spigot/Vanilla)
-- 🔌 Pluggable storage backends (Memory, Redis, PostgreSQL)
-- 🐳 Docker-ready with proper FUSE support
+- [] 🚀 Infinite World Feature without real .mca files on disk
+- [] 📁 Anvil format compatibility (potentially works with any Minecraft Java Edition, but 1.21.11 considered as a goal for now)
+- [] 🔌 Pluggable abstract storage backends (Memory, Redis, PostgreSQL) so Minecraft can read chunks from any storage backend without knowing the storage backend.
+- [] 🐳 Docker-first with proper FUSE support
+- [] Minecraft world is potentially queriable via PostgreSQL 
+- [] Potentially we can use same map on different servers
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                  Minecraft Server                    │
-│                    (Paper 1.21+)                    │
+│                    (Paper 1.21.11)                    │
 └─────────────────────┬───────────────────────────────┘
                       │ reads/writes .mca files
                       ▼
@@ -29,7 +30,7 @@ This project creates a virtual filesystem that Minecraft servers can use as thei
 │  (src/region/)    │  (src/chunk/)                   │
 ├───────────────────┴─────────────────────────────────┤
 │                 Storage Backend                      │
-│     Memory │ Redis (TODO) │ PostgreSQL (Done)       │
+│     Memory (L1) │ Redis (L2) │ PostgreSQL (L3)       │
 │              (src/storage/)                         │
 └─────────────────────────────────────────────────────┘
 ```
@@ -67,48 +68,24 @@ This starts:
 - `redis` - Cache/storage backend
 - `minecraft` - Paper server on port 25565
 
-### Local Development
-
-```bash
-# Build
-cargo build --release
-
-# Create mount point
-mkdir -p /tmp/mc-region
-
-# Run (requires FUSE permissions)
-./target/release/mc-anvil-db
-```
-
 ## Storage Backends
-
-The `ChunkStorage` trait allows swappable backends:
-
-```rust
-pub trait ChunkStorage: Send + Sync {
-    fn get(&self, pos: ChunkPos) -> Option<Vec<u8>>;
-    fn set(&self, pos: ChunkPos, data: Vec<u8>);
-    fn exists(&self, pos: ChunkPos) -> bool;
-    fn delete(&self, pos: ChunkPos);
-}
-```
 
 | Backend | Status | Use Case |
 |---------|--------|----------|
-| `MemoryStorage` | ✅ Done | Development, testing |
+| `MemoryStorage` | 🚧 TODO | Development, testing |
 | `RedisStorage` | 🚧 TODO | Distributed cache |
 | `PostgresStorage` | 🚧 TODO | Persistent storage |
 
 ## How It Works
 
 1. **Minecraft requests `r.0.0.mca`** → FUSE intercepts
-2. **FUSE checks storage** → Has this chunk been modified?
-3. **If not in storage** → Generate procedurally
-4. **Return MCA-formatted data** → Minecraft loads chunks
-5. **Minecraft saves changes** → We capture and store them
+2. **FUSE checks storage** → Is chunk in storage? (Memory, Redis, PostgreSQL)
 
-Currently, basic read/write works with PostgreSQL, but complex chunks (with block data) may fail due to NBT serialization issues.
-Persistence is enabled via `DATABASE_URL`.
+3.1 **If not in storage** → Tell Minecraft to generate chunk
+3.2. **If in storage** → Give minecraft .mca file
+
+4. **Minecraft saves changes** → We capture them and store them in storage
+
 
 ## Configuration
 
@@ -121,7 +98,7 @@ Environment variables:
 
 ## Requirements
 
-- Rust 1.75+
+- Rust 1.92+
 - FUSE 3 (`libfuse3-dev` on Debian/Ubuntu)
 - Docker & Docker Compose (for containerized setup)
 
