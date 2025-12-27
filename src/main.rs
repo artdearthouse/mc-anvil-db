@@ -16,7 +16,7 @@ async fn main() {
     env_logger::init();
     let args = Args::parse();
 
-    use fuser::MountOption;
+
     let options = vec![];
 
     println!("Mounting FUSE to {:?} (Background)", args.mountpoint);
