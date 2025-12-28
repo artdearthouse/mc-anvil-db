@@ -13,6 +13,7 @@ anyhow = "1.0"
 # for NBT
 fastnbt = "2.6"
 pumpkin-nbt = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", rev = "42c903493a09a4c8d7f4eddc2644464e3871c736" }
+pumpkin-data = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", rev = "42c903493a09a4c8d7f4eddc2644464e3871c736" }
 serde = { version = "1.0", features = ["derive"] }
 serde_bytes = "0.11"
 serde_json = "1.0"
