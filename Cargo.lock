@@ -518,6 +518,7 @@ dependencies = [
  "libc",
  "log",
  "postgis",
+ "pumpkin-nbt",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -739,6 +740,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ee95bc4ef87b8d5ba32e8b7714ccc834865276eab0aed5c9958d00ec45f49e8"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "pumpkin-nbt"
+version = "0.1.0-dev+1.21.11"
+source = "git+https://github.com/Pumpkin-MC/Pumpkin.git?rev=42c903493a09a4c8d7f4eddc2644464e3871c736#42c903493a09a4c8d7f4eddc2644464e3871c736"
+dependencies = [
+ "bytes",
+ "cesu8",
+ "flate2",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -978,6 +991,26 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
