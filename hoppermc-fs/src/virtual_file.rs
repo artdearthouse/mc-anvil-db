@@ -167,7 +167,7 @@ impl VirtualFile {
                                       }
                                   }
                              }
-                             log::warn!("CORRECTION: Intercepted write at offset for ({}, {}), but NBT contains ({}, {}). Saving to DB as ({}, {}).", abs_x, abs_z, real_x, real_z, real_x, real_z);
+                             log::debug!("CORRECTION: Intercepted write at offset for ({}, {}), but NBT contains ({}, {}). Saving to DB as ({}, {}).", abs_x, abs_z, real_x, real_z, real_x, real_z);
                              (real_x, real_z)
                          }
                      };
