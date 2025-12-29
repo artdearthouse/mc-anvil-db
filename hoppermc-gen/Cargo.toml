@@ -13,3 +13,4 @@ tokio = { workspace = true }
 rand = { workspace = true }
 rand_core = { workspace = true }
 fastnbt = { workspace = true }
+hoppermc-benchmark = { path = "../hoppermc-benchmark" }

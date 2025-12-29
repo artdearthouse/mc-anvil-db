@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "hoppermc",
-    "hoppermc-anvil",
+    "hoppermc-anvil", "hoppermc-benchmark",
     "hoppermc-fs",
     "hoppermc-gen",
     "hoppermc-storage"

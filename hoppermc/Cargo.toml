@@ -11,3 +11,4 @@ clap = { workspace = true, features = ["env"] }
 tokio = { workspace = true }
 env_logger = { workspace = true }
 fuser = { workspace = true }
+hoppermc-benchmark = { path = "../hoppermc-benchmark" }

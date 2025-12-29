@@ -87,7 +87,7 @@ async fn main() {
     };
 
     // Initialize Benchmark
-    use hoppermc_fs::benchmark::BenchmarkMetrics;
+    use hoppermc_benchmark::BenchmarkMetrics;
     let benchmark = if std::env::var("BENCHMARK").is_ok() {
         println!("BENCHMARK MODE ENABLED 🚀");
         Some(Arc::new(BenchmarkMetrics::new()))

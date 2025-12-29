@@ -7,7 +7,7 @@ use hoppermc_anvil as region;
 
 pub mod virtual_file;
 pub mod inode;
-pub mod benchmark;
+
 
 use virtual_file::VirtualFile;
 

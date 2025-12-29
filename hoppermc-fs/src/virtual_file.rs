@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use hoppermc_gen::WorldGenerator;
 use hoppermc_anvil as region;
 use hoppermc_storage::ChunkStorage;
-use crate::benchmark::BenchmarkMetrics;
+use hoppermc_benchmark::BenchmarkMetrics;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 

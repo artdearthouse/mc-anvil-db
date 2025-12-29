@@ -787,6 +787,7 @@ dependencies = [
  "clap",
  "env_logger",
  "fuser",
+ "hoppermc-benchmark",
  "hoppermc-fs",
  "hoppermc-gen",
  "hoppermc-storage",
@@ -804,6 +805,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "hoppermc-benchmark"
+version = "0.1.0"
+
+[[package]]
 name = "hoppermc-fs"
 version = "0.0.6"
 dependencies = [
@@ -813,6 +818,7 @@ dependencies = [
  "fastnbt",
  "fuser",
  "hoppermc-anvil",
+ "hoppermc-benchmark",
  "hoppermc-gen",
  "hoppermc-storage",
  "libc",
@@ -828,6 +834,7 @@ dependencies = [
  "anyhow",
  "fastnbt",
  "hoppermc-anvil",
+ "hoppermc-benchmark",
  "pumpkin-data",
  "pumpkin-util",
  "pumpkin-world",

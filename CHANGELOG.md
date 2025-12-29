@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
     -   `raw` (default) — Persist chunks to PostgreSQL.
     -   `nostorage` — Fully stateless mode, all chunks generated on-the-fly. No DB required.
 -   **Internal Benchmark System**: Enable via `BENCHMARK=true`. Writes `benchmark-{timestamp}.txt` on exit with generation/load metrics.
+    -   Refactored into `hoppermc-benchmark` crate for cross-component profiling.
 
 ---
 
