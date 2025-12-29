@@ -87,7 +87,7 @@ impl VirtualFile {
                             Ok(Some(raw_nbt)) => {
                                 // Found in DB! Verify consistency
                                 if let Err(e) = region::verify_chunk_coords(&raw_nbt, abs_x, abs_z) {
-                                    log::error!("CRITICAL: DB Corruption detected. Discarding and regenerating.");
+                                    log::error!("CRITICAL: DB Corruption detected for ({}, {}). Error: {:?}. Discarding and regenerating.", abs_x, abs_z, e);
                                     // Generation Fallback
                                     let start_gen = std::time::Instant::now();
                                     let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt);
