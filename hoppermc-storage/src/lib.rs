@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
+pub mod nbt_json;
 pub mod postgres;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
