@@ -1,6 +1,6 @@
 [package]
 name = "hoppermc-fs"
-version = "0.0.6"
+version = "0.0.6-pre3"
 edition = "2024"
 
 [dependencies]

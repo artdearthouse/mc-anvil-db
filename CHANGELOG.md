@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.6-pre3] - 2025-12-30 (Unreleased)
+## [0.0.6-pre3] - 2025-12-30
 
 ### Added
 -   **Configurable Pre-generation**: New `--prefetch-radius` arg to proactively generate chunks around the player.
