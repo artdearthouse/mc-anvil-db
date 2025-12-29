@@ -6,7 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 -   **PgJsonb Mode**: Support for structured JSON storage in PostgreSQL (NBT ↔ JSONB conversion).
+-   **Robust NBT-JSON Mapping**: Custom conversion logic for `PgJsonb` mode that handles untyped JSON numbers and preserves NBT array types (ByteArray/IntArray/LongArray) using special tags.
 -   **Storage Mode Refactoring**: Internal storage logic updated to support backend-specific naming (`pg_raw` vs `pg_jsonb`).
+
+### Changed
+-   **Modular Storage Refactor**: Moved NBT-JSON conversion logic into a dedicated `nbt_json` module within `hoppermc-storage` for better maintainability and testability.
 
 ## [0.0.6-pre3] - 2025-12-30
 
