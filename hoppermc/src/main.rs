@@ -108,7 +108,13 @@ async fn main() {
     if let Some(bench) = benchmark {
         let report = bench.generate_report();
         let timestamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
-        let filename = format!("benchmark-{}.txt", timestamp);
+        
+        // Ensure benchmarks directory exists
+        if let Err(e) = std::fs::create_dir_all("benchmarks") {
+             eprintln!("Failed to create benchmarks directory: {}", e);
+        }
+        
+        let filename = format!("benchmarks/benchmark-{}.txt", timestamp);
         if let Err(e) = std::fs::write(&filename, &report) {
             eprintln!("Failed to write benchmark report: {}", e);
         } else {

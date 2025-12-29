@@ -15,12 +15,15 @@ services:
       - GENERATOR=${GENERATOR:-flat}
       - SEED=${SEED:-12345}
       - STORAGE=${STORAGE:-raw}
+      - BENCHMARK=${BENCHMARK:-false}
+    working_dir: /app
     volumes:
       - type: bind
         source: ./fuse_region
         target: /mnt/region
         bind:
           propagation: rshared
+      - ./benchmarks:/app/benchmarks
     healthcheck:
       test: ["CMD", "mountpoint", "-q", "/mnt/region"]
       interval: 5s

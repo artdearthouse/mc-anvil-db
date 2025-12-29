@@ -1,3 +1,6 @@
 /target
-fuse_region/
+/fuse_region/*
+!/fuse_region/.keep
+/benchmarks/*
+!/benchmarks/.keep
 .env
