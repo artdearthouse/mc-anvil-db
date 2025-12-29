@@ -77,7 +77,7 @@ impl WorldGenerator for VanillaWorldGenerator {
     /// 5. Convert `ProtoChunk` → `ChunkData` (copy blocks/biomes to sections)
     /// 6. Serialize to NBT bytes
     fn generate_chunk(&self, x: i32, z: i32, rt: &tokio::runtime::Handle, benchmark: Option<&hoppermc_benchmark::BenchmarkMetrics>) -> Result<Vec<u8>> {
-        let start_noise = std::time::Instant::now();
+
         let settings = self.get_settings();
         let default_block = settings.default_block.get_state();
         let biome_mixer_seed = hash_seed(self.random_config.seed);
@@ -86,19 +86,31 @@ impl WorldGenerator for VanillaWorldGenerator {
         let mut proto_chunk = ProtoChunk::new(x, z, settings, default_block, biome_mixer_seed);
         
         // Step 1: Populate biomes
+        let start_biomes = std::time::Instant::now();
         proto_chunk.step_to_biomes(self.dimension.clone(), &self.noise_router);
+         if let Some(bench) = benchmark {
+            bench.record_generation_biomes(start_biomes.elapsed());
+        }
         
         // Step 2: Populate noise (terrain)
+        let start_noise = std::time::Instant::now();
         proto_chunk.step_to_noise(settings, &self.random_config, &self.noise_router);
-        
-        // Step 3: Build surface (grass, sand, etc.)
-        proto_chunk.step_to_surface(settings, &self.random_config, &self.terrain_cache, &self.noise_router);
-        
-        // Convert ProtoChunk to ChunkData (adapted from Pumpkin's upgrade_to_level_chunk)
-        let chunk_data = self.proto_to_chunk_data(&proto_chunk, settings);
-        
         if let Some(bench) = benchmark {
             bench.record_generation_noise(start_noise.elapsed());
+        }
+        
+        // Step 3: Build surface (grass, sand, etc.)
+        let start_surface = std::time::Instant::now();
+        proto_chunk.step_to_surface(settings, &self.random_config, &self.terrain_cache, &self.noise_router);
+        if let Some(bench) = benchmark {
+             bench.record_generation_surface(start_surface.elapsed());
+        }
+        
+        // Convert ProtoChunk to ChunkData (adapted from Pumpkin's upgrade_to_level_chunk)
+        let start_conv = std::time::Instant::now();
+        let chunk_data = self.proto_to_chunk_data(&proto_chunk, settings);
+        if let Some(bench) = benchmark {
+             bench.record_generation_conversion(start_conv.elapsed());
         }
 
         // Serialize to bytes using passed runtime handle (no per-chunk runtime creation!)

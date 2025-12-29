@@ -15,7 +15,11 @@ pub struct BenchmarkMetrics {
     pub total_save_time_us: AtomicU64,
 
     // Detailed Breakdown
-    pub total_generation_noise_us: AtomicU64,
+    pub total_generation_biomes_us: AtomicU64,
+    pub total_generation_noise_us: AtomicU64, // Terrain noise
+    pub total_generation_surface_us: AtomicU64,
+    pub total_generation_conversion_us: AtomicU64,
+    
     pub total_serialization_us: AtomicU64,
     pub total_compression_us: AtomicU64,
     
@@ -52,8 +56,20 @@ impl BenchmarkMetrics {
         self.total_save_time_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
     }
 
+    pub fn record_generation_biomes(&self, duration: Duration) {
+        self.total_generation_biomes_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
+    }
+
     pub fn record_generation_noise(&self, duration: Duration) {
         self.total_generation_noise_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
+    }
+    
+    pub fn record_generation_surface(&self, duration: Duration) {
+        self.total_generation_surface_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
+    }
+    
+    pub fn record_generation_conversion(&self, duration: Duration) {
+        self.total_generation_conversion_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
     }
 
     pub fn record_serialization(&self, duration: Duration) {
@@ -80,11 +96,19 @@ impl BenchmarkMetrics {
         let gen_avg = if generated > 0 { gen_time_total / generated as f64 } else { 0.0 };
         
         // Granular stats
+        let biome_time = self.total_generation_biomes_us.load(Ordering::Relaxed) as f64 / 1000.0;
         let noise_time = self.total_generation_noise_us.load(Ordering::Relaxed) as f64 / 1000.0;
+        let surface_time = self.total_generation_surface_us.load(Ordering::Relaxed) as f64 / 1000.0;
+        let conv_time = self.total_generation_conversion_us.load(Ordering::Relaxed) as f64 / 1000.0;
+        
         let ser_time = self.total_serialization_us.load(Ordering::Relaxed) as f64 / 1000.0;
         let comp_time = self.total_compression_us.load(Ordering::Relaxed) as f64 / 1000.0;
         
+        let biome_avg = if generated > 0 { biome_time / generated as f64 } else { 0.0 };
         let noise_avg = if generated > 0 { noise_time / generated as f64 } else { 0.0 };
+        let surface_avg = if generated > 0 { surface_time / generated as f64 } else { 0.0 };
+        let conv_avg = if generated > 0 { conv_time / generated as f64 } else { 0.0 };
+        
         let ser_avg = if generated > 0 { ser_time / generated as f64 } else { 0.0 };
         let comp_avg = if generated > 0 { comp_time / generated as f64 } else { 0.0 };
 
@@ -111,7 +135,11 @@ impl BenchmarkMetrics {
              Total Time: {:.2} ms\n\
              Avg Time: {:.2} ms/chunk\n\
              Max Time: {:.2} ms\n\
-               - Noise/Logic: {:.2} ms/chunk\n\
+               - Logic Breakdown:\n\
+                 * Biomes: {:.2} ms\n\
+                 * Noise (Terrain): {:.2} ms\n\
+                 * Surface Rules: {:.2} ms\n\
+                 * Data Conversion: {:.2} ms\n\
                - Serialization: {:.2} ms/chunk\n\
                - Compression: {:.2} ms/chunk\n\n\
              [Storage Read]\n\
@@ -126,7 +154,8 @@ impl BenchmarkMetrics {
              Hit Rate: {:.1}%\n",
             uptime,
             generated, gen_time_total, gen_avg, gen_max,
-            noise_avg, ser_avg, comp_avg,
+            biome_avg, noise_avg, surface_avg, conv_avg,
+            ser_avg, comp_avg,
             loaded, load_avg,
             saved, save_avg,
             hits, misses, hit_rate

@@ -155,7 +155,7 @@ This starts:
 1. **Minecraft requests `r.x.z.mca`**: FUSE intercepts the `open` and `read` calls.
 2. **Header Generation**: FUSE calculates where chunks *would* be in a real file and sends a generated header.
 3. **Chunk Mapping**: It calculates which chunk (X, Z) corresponds to the requested file offset.
-4. **Pumpkin Integration**: `FlatGenerator` asks `ChunkBuilder` to build the chunk.
+4. **Pumpkin Integration**: `VanillaGenerator` asks `ChunkBuilder` to build the chunk.
 5. **Serialization**: `builder.rs` uses **Pumpkin-World** to create and serialize the complex NBT structure (including palettes, sections, and lighting).
 6. **Compression**: The chunk is Zlib-compressed and sent to Minecraft.
 
