@@ -167,7 +167,7 @@ This starts:
 ## Acknowledgments
 
 Special thanks to the **[Pumpkin-MC Team](https://github.com/Pumpkin-MC/Pumpkin)**!
-We utilize their excellent crates (`pumpkin-world`, `pumpkin-data`) to handle standard-compliant Minecraft Chunk Structures and Data.
+We integrate their `VanillaGenerator` from `pumpkin-world` to provide realistic terrain generation (caves, noise, biomes) and rely on `pumpkin-data` for accurate Block and Biome ID handling.
 
 ## License
 

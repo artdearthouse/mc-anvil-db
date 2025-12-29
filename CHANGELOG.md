@@ -8,8 +8,18 @@ All notable changes to this project will be documented in this file.
 -   **Storage Mode Selection**: New `STORAGE` env var / `--storage` CLI arg to choose storage backend.
     -   `raw` (default) — Persist chunks to PostgreSQL.
     -   `nostorage` — Fully stateless mode, all chunks generated on-the-fly. No DB required.
--   **Internal Benchmark System**: Enable via `BENCHMARK=true`. Writes `benchmark-{timestamp}.txt` on exit with generation/load metrics.
-    -   Refactored into `hoppermc-benchmark` crate for cross-component profiling.
+
+### Performance
+-   **LRU Chunk Cache**: Implemented in-memory LRU cache (`hoppermc-fs`) to store generated/loaded chunk blobs. Reduces redundant generation and I/O. Configurable via `--cache-size` (default: 500 chunks).
+-   **Parallel FUSE I/O**: Refactored I/O handling to use a thread-per-request model, preventing file system operations from blocking the main loop. Significantly reduces "transparent chunk" issues during flight.
+-   **Runtime Optimization**: Eliminated per-chunk `tokio::runtime` creation overhead.
+
+### Internal
+-   **Benchmark System**:
+    -   **Usage**: `BENCHMARK=true` prints report on exit.
+    -   **Refactor**: Extracted core logic to `hoppermc-benchmark` crate for cross-crate usage.
+    -   **Metrics**: Tracks generation time (avg/max), storage I/O, and chunk throughput.
+    -   **Reporting**: Automatically saves session reports to `benchmarks/benchmark-{timestamp}.txt`.
 
 ---
 
