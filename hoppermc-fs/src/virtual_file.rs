@@ -57,23 +57,23 @@ impl VirtualFile {
                             if let Err(e) = region::verify_chunk_coords(&raw_nbt, abs_x, abs_z) {
                                 log::error!("CRITICAL: DB Corruption detected for ({}, {}). Data coords mismatch: {:?}. Discarding and regenerating.", abs_x, abs_z, e);
                                 // Self-healing: Drop corrupted data, fall back to generator
-                                self.generator.generate_chunk(abs_x, abs_z)
+                                self.generator.generate_chunk(abs_x, abs_z, &self.rt)
                             } else {
                                 Ok(raw_nbt)
                             }
                         },
                         Ok(None) => {
                             // Not in DB, generate it
-                            self.generator.generate_chunk(abs_x, abs_z)
+                            self.generator.generate_chunk(abs_x, abs_z, &self.rt)
                         },
                         Err(e) => {
                             log::error!("Error loading chunk from DB: {:?}", e);
-                            self.generator.generate_chunk(abs_x, abs_z)
+                            self.generator.generate_chunk(abs_x, abs_z, &self.rt)
                         }
                     }
                 } else {
                     // No storage - always generate (stateless mode)
-                    self.generator.generate_chunk(abs_x, abs_z)
+                    self.generator.generate_chunk(abs_x, abs_z, &self.rt)
                 };
 
                 if let Ok(nbt_data) = nbt_res {

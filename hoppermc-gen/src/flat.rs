@@ -1,12 +1,13 @@
 
 
 use crate::WorldGenerator;
-use crate::builder::ChunkBuilder; // Import our new tool
+use crate::builder::ChunkBuilder;
+use tokio::runtime::Handle;
 
 pub struct FlatGenerator;
 
 impl WorldGenerator for FlatGenerator {
-    fn generate_chunk(&self, x: i32, z: i32) -> anyhow::Result<Vec<u8>> {
+    fn generate_chunk(&self, x: i32, z: i32, rt: &Handle) -> anyhow::Result<Vec<u8>> {
         let mut builder = ChunkBuilder::new();
 
         // 1. Bedrock Floor (Y=-64)
@@ -30,7 +31,6 @@ impl WorldGenerator for FlatGenerator {
             builder.set_block(8, y, 8, "minecraft:stone");
         }
 
-        let bytes = builder.build(x, z)?;
-        Ok(bytes)
+        builder.build(x, z, rt)
     }
 }

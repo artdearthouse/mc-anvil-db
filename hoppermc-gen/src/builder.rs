@@ -32,7 +32,7 @@ impl ChunkBuilder {
         self.custom_blocks.retain(|(_, by, _), _| *by != y);
     }
 
-    pub fn build(self, chunk_x: i32, chunk_z: i32) -> anyhow::Result<Vec<u8>> {
+    pub fn build(self, chunk_x: i32, chunk_z: i32, rt: &tokio::runtime::Handle) -> anyhow::Result<Vec<u8>> {
         use pumpkin_world::chunk::{ChunkData, ChunkSections, SubChunk, ChunkHeightmaps, ChunkLight};
         use pumpkin_world::chunk::format::LightContainer;
         use pumpkin_data::chunk::ChunkStatus; // Explicitly import Status
@@ -94,19 +94,7 @@ impl ChunkBuilder {
             dirty: false,
         };
 
-        // 5. Serialize
-        // Handle::current() might fail if not in context, but main has #[tokio::main]
-        // If FUSE runs in a separate thread, we might need a runtime.
-        // Let's safe-guard with block_on from a new runtime if needed, strictly for this op.
-        // However, creating a runtime per chunk is expensive. 
-        // Let's assume Handle::current() works or rely on the fact that we can block on future.
-        // pumpkin's serializer uses async.
-        
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-            
+        // 5. Serialize using passed runtime handle (no new runtime creation!)
         let bytes = rt.block_on(async move {
             chunk_data.to_bytes().await
         }).map_err(|e| anyhow::anyhow!("Serialization error: {:?}", e))?;

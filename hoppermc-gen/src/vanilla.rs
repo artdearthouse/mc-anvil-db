@@ -62,7 +62,21 @@ impl VanillaWorldGenerator {
 }
 
 impl WorldGenerator for VanillaWorldGenerator {
-    fn generate_chunk(&self, x: i32, z: i32) -> Result<Vec<u8>> {
+    /// Generates a chunk at the specified coordinates using Pumpkin's staged generation.
+    /// 
+    /// # Arguments
+    /// * `x` - Chunk X coordinate (in chunk coordinates, not blocks)
+    /// * `z` - Chunk Z coordinate (in chunk coordinates, not blocks)
+    /// * `rt` - Tokio runtime handle for async serialization (reused, not created per-chunk)
+    /// 
+    /// # Generation Pipeline
+    /// 1. Create ProtoChunk with default block (stone/netherrack/end_stone)
+    /// 2. `step_to_biomes()` - Populate biome data using noise sampling
+    /// 3. `step_to_noise()` - Generate terrain heightmap and 3D density
+    /// 4. `step_to_surface()` - Apply surface rules (grass, sand, snow, etc.)
+    /// 5. Convert `ProtoChunk` → `ChunkData` (copy blocks/biomes to sections)
+    /// 6. Serialize to NBT bytes
+    fn generate_chunk(&self, x: i32, z: i32, rt: &tokio::runtime::Handle) -> Result<Vec<u8>> {
         let settings = self.get_settings();
         let default_block = settings.default_block.get_state();
         let biome_mixer_seed = hash_seed(self.random_config.seed);
@@ -82,12 +96,7 @@ impl WorldGenerator for VanillaWorldGenerator {
         // Convert ProtoChunk to ChunkData (adapted from Pumpkin's upgrade_to_level_chunk)
         let chunk_data = self.proto_to_chunk_data(&proto_chunk, settings);
         
-        // Serialize to bytes
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-            
+        // Serialize to bytes using passed runtime handle (no per-chunk runtime creation!)
         let bytes = rt.block_on(async move {
             chunk_data.to_bytes().await
         }).map_err(|e| anyhow::anyhow!("Serialization error: {:?}", e))?;
