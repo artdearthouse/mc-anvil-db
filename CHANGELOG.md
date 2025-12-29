@@ -42,8 +42,6 @@ All notable changes to this project will be documented in this file.
 -   **Dependency Cleanup**: Removed unused workspace dependencies (`thiserror`, `postgis`, `hex`, `pumpkin-nbt`, `pumpkin-util`).
 -   **Docker Compose**: Now passes `GENERATOR` and `SEED` environment variables from `.env` to the hoppermc container.
 
-### Known Issues
--   ⚠️ **Vanilla Generator Performance**: The vanilla generator is **very slow** — chunk loading may appear frozen for 30+ seconds on initial spawn. This is expected due to complex noise sampling. Optimization planned for future releases.
 
 ## [0.0.5] - 2025-12-29
 

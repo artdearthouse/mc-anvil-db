@@ -209,7 +209,6 @@ impl VirtualFile {
             bench.record_fuse_request(start_fuse.elapsed(), response_data.len());
         }
 
-        log::debug!("read_at done: offset={}, size={}, return_len={}", offset, size, response_data.len());
         response_data
     }
     pub fn write_at(&self, offset: u64, data: &[u8], region_x: i32, region_z: i32) {

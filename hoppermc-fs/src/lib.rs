@@ -311,10 +311,7 @@ impl Filesystem for McFUSE {
              let offset = offset as u64;
              let size = size as usize;
              
-             log::debug!("FUSE Read: r.{}.{}.mca offset={} size={}", x, z, offset, size);
-             let data = self.virtual_file.read_at(offset, size, x, z);
-             log::debug!("FUSE Read Done: r.{}.{}.mca returned {} bytes", x, z, data.len());
-             reply.data(&data);
+             reply.data(&self.virtual_file.read_at(offset, size, x, z));
          } else if inode::is_generic_inode(ino) {
               // Generic files are empty on read
               reply.data(&[]);

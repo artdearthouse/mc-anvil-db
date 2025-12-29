@@ -142,8 +142,6 @@ DOCKER_BUILDKIT=1 docker compose up -d --build
 - `raw` (default) — Persist chunks to PostgreSQL.
 - `nostorage` — Stateless mode, all chunks generated on-the-fly. No database required.
 
-> ⚠️ **Performance Warning:** The `vanilla` generator is **very slow** — initial chunk loading may take 30+ seconds and appear frozen. This is expected due to complex noise sampling. Optimization is planned.
-
 This starts:
 - `hoppermc`: The FUSE filesystem mounting to `/mnt/region`.
 - `minecraft`: A Paper server configured to use the FUSE mount.
