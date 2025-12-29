@@ -7,7 +7,7 @@ use tokio::runtime::Handle;
 pub struct FlatGenerator;
 
 impl WorldGenerator for FlatGenerator {
-    fn generate_chunk(&self, x: i32, z: i32, rt: &Handle) -> anyhow::Result<Vec<u8>> {
+    fn generate_chunk(&self, x: i32, z: i32, rt: &Handle, _benchmark: Option<&hoppermc_benchmark::BenchmarkMetrics>) -> anyhow::Result<Vec<u8>> {
         let mut builder = ChunkBuilder::new();
 
         // 1. Bedrock Floor (Y=-64)

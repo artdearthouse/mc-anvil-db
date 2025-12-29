@@ -14,6 +14,15 @@ pub struct BenchmarkMetrics {
     pub total_chunks_saved: AtomicUsize,
     pub total_save_time_us: AtomicU64,
 
+    // Detailed Breakdown
+    pub total_generation_noise_us: AtomicU64,
+    pub total_serialization_us: AtomicU64,
+    pub total_compression_us: AtomicU64,
+    
+    // Cache
+    pub total_cache_hits: AtomicUsize,
+    pub total_cache_misses: AtomicUsize,
+
     // Session
     pub start_time: Option<Instant>,
 }
@@ -43,12 +52,47 @@ impl BenchmarkMetrics {
         self.total_save_time_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
     }
 
+    pub fn record_generation_noise(&self, duration: Duration) {
+        self.total_generation_noise_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_serialization(&self, duration: Duration) {
+        self.total_serialization_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_compression(&self, duration: Duration) {
+        self.total_compression_us.fetch_add(duration.as_micros() as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_cache_hit(&self) {
+        self.total_cache_hits.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_cache_miss(&self) {
+        self.total_cache_misses.fetch_add(1, Ordering::Relaxed);
+    }
+
     pub fn generate_report(&self) -> String {
         let uptime = self.start_time.unwrap_or_else(Instant::now).elapsed();
         let generated = self.total_chunks_generated.load(Ordering::Relaxed);
         let gen_time_total = self.total_generation_time_us.load(Ordering::Relaxed) as f64 / 1000.0; // ms
         let gen_max = self.max_generation_time_us.load(Ordering::Relaxed) as f64 / 1000.0; // ms
         let gen_avg = if generated > 0 { gen_time_total / generated as f64 } else { 0.0 };
+        
+        // Granular stats
+        let noise_time = self.total_generation_noise_us.load(Ordering::Relaxed) as f64 / 1000.0;
+        let ser_time = self.total_serialization_us.load(Ordering::Relaxed) as f64 / 1000.0;
+        let comp_time = self.total_compression_us.load(Ordering::Relaxed) as f64 / 1000.0;
+        
+        let noise_avg = if generated > 0 { noise_time / generated as f64 } else { 0.0 };
+        let ser_avg = if generated > 0 { ser_time / generated as f64 } else { 0.0 };
+        let comp_avg = if generated > 0 { comp_time / generated as f64 } else { 0.0 };
+
+        // Cache stats
+        let hits = self.total_cache_hits.load(Ordering::Relaxed);
+        let misses = self.total_cache_misses.load(Ordering::Relaxed);
+        let total_requests = hits + misses;
+        let hit_rate = if total_requests > 0 { (hits as f64 / total_requests as f64) * 100.0 } else { 0.0 };
 
         let loaded = self.total_chunks_loaded.load(Ordering::Relaxed);
         let load_time = self.total_load_time_us.load(Ordering::Relaxed) as f64 / 1000.0;
@@ -66,17 +110,26 @@ impl BenchmarkMetrics {
              Chunks Generated: {}\n\
              Total Time: {:.2} ms\n\
              Avg Time: {:.2} ms/chunk\n\
-             Max Time: {:.2} ms\n\n\
+             Max Time: {:.2} ms\n\
+               - Noise/Logic: {:.2} ms/chunk\n\
+               - Serialization: {:.2} ms/chunk\n\
+               - Compression: {:.2} ms/chunk\n\n\
              [Storage Read]\n\
              Chunks Loaded: {}\n\
              Avg Time: {:.2} ms/chunk\n\n\
              [Storage Write]\n\
              Chunks Saved: {}\n\
-             Avg Time: {:.2} ms/chunk\n",
+             Avg Time: {:.2} ms/chunk\n\n\
+             [Cache]\n\
+             Hits: {}\n\
+             Misses: {}\n\
+             Hit Rate: {:.1}%\n",
             uptime,
             generated, gen_time_total, gen_avg, gen_max,
+            noise_avg, ser_avg, comp_avg,
             loaded, load_avg,
-            saved, save_avg
+            saved, save_avg,
+            hits, misses, hit_rate
         )
     }
 }

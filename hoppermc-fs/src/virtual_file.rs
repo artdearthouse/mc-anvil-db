@@ -69,8 +69,10 @@ impl VirtualFile {
                 };
                 
                 let chunk_blob = if let Some(blob) = cached_blob {
+                    if let Some(bench) = &self.benchmark { bench.record_cache_hit(); }
                     blob
                 } else {
+                    if let Some(bench) = &self.benchmark { bench.record_cache_miss(); }
                     // CACHE MISS - Load/Generate
                     
                     // 1. Try to load from Storage first (if storage is enabled)
@@ -90,7 +92,7 @@ impl VirtualFile {
                                     log::error!("CRITICAL: DB Corruption detected for ({}, {}). Error: {:?}. Discarding and regenerating.", abs_x, abs_z, e);
                                     // Generation Fallback
                                     let start_gen = std::time::Instant::now();
-                                    let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt);
+                                    let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt, self.benchmark.as_deref());
                                     if let Some(bench) = &self.benchmark { bench.record_generation(start_gen.elapsed()); }
                                     res
                                 } else {
@@ -100,14 +102,14 @@ impl VirtualFile {
                             Ok(None) => {
                                 // Not in DB, generate it
                                 let start_gen = std::time::Instant::now();
-                                let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt);
+                                let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt, self.benchmark.as_deref());
                                 if let Some(bench) = &self.benchmark { bench.record_generation(start_gen.elapsed()); }
                                 res
                             },
                             Err(e) => {
                                 log::error!("Error loading chunk from DB: {:?}", e);
                                 let start_gen = std::time::Instant::now();
-                                let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt);
+                                let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt, self.benchmark.as_deref());
                                 if let Some(bench) = &self.benchmark { bench.record_generation(start_gen.elapsed()); }
                                 res
                             }
@@ -115,7 +117,7 @@ impl VirtualFile {
                     } else {
                         // No storage - always generate
                         let start_gen = std::time::Instant::now();
-                        let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt);
+                        let res = self.generator.generate_chunk(abs_x, abs_z, &self.rt, self.benchmark.as_deref());
                         if let Some(bench) = &self.benchmark { bench.record_generation(start_gen.elapsed()); }
                         res
                     };
@@ -128,7 +130,11 @@ impl VirtualFile {
                                 break; // Broken generator
                             }
 
-                            if let Some(blob) = region::compress_and_wrap_chunk(&nbt_data) {
+                            let start_comp = std::time::Instant::now();
+                            let blob_opt = region::compress_and_wrap_chunk(&nbt_data);
+                            if let Some(bench) = &self.benchmark { bench.record_compression(start_comp.elapsed()); }
+
+                            if let Some(blob) = blob_opt {
                                 // Update Cache
                                 self.cache.lock().unwrap().put((abs_x, abs_z), blob.clone());
                                 blob
@@ -273,7 +279,7 @@ mod tests {
 
     struct MockGenerator;
     impl WorldGenerator for MockGenerator {
-        fn generate_chunk(&self, _x: i32, _z: i32) -> Result<Vec<u8>> {
+        fn generate_chunk(&self, _x: i32, _z: i32, _rt: &tokio::runtime::Handle, _bench: Option<&BenchmarkMetrics>) -> Result<Vec<u8>> {
             // Return dummy NBT data
             Ok(vec![1, 2, 3, 4])
         }

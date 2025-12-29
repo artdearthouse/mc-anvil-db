@@ -76,7 +76,8 @@ impl WorldGenerator for VanillaWorldGenerator {
     /// 4. `step_to_surface()` - Apply surface rules (grass, sand, snow, etc.)
     /// 5. Convert `ProtoChunk` → `ChunkData` (copy blocks/biomes to sections)
     /// 6. Serialize to NBT bytes
-    fn generate_chunk(&self, x: i32, z: i32, rt: &tokio::runtime::Handle) -> Result<Vec<u8>> {
+    fn generate_chunk(&self, x: i32, z: i32, rt: &tokio::runtime::Handle, benchmark: Option<&hoppermc_benchmark::BenchmarkMetrics>) -> Result<Vec<u8>> {
+        let start_noise = std::time::Instant::now();
         let settings = self.get_settings();
         let default_block = settings.default_block.get_state();
         let biome_mixer_seed = hash_seed(self.random_config.seed);
@@ -96,10 +97,19 @@ impl WorldGenerator for VanillaWorldGenerator {
         // Convert ProtoChunk to ChunkData (adapted from Pumpkin's upgrade_to_level_chunk)
         let chunk_data = self.proto_to_chunk_data(&proto_chunk, settings);
         
+        if let Some(bench) = benchmark {
+            bench.record_generation_noise(start_noise.elapsed());
+        }
+
         // Serialize to bytes using passed runtime handle (no per-chunk runtime creation!)
+        let start_ser = std::time::Instant::now();
         let bytes = rt.block_on(async move {
             chunk_data.to_bytes().await
         }).map_err(|e| anyhow::anyhow!("Serialization error: {:?}", e))?;
+
+        if let Some(bench) = benchmark {
+             bench.record_serialization(start_ser.elapsed());
+        }
 
         Ok(bytes.to_vec())
     }
