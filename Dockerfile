@@ -11,17 +11,19 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef as builder
+# Enable native CPU optimizations (SIMD) and other perf flags for ALL build steps
+ENV RUSTFLAGS="-C target-cpu=native"
 COPY --from=planner /usr/src/app/hoppermc/recipe.json recipe.json
 # Build dependencies - this will be cached if recipe.json hasn't changed
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/src/app/hoppermc/target \
     cargo chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY . .
-# Enable native CPU optimizations (SIMD) and other perf flags
-ENV RUSTFLAGS="-C target-cpu=native"
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/src/app/hoppermc/target \
     cargo build --release --workspace && \
     cp target/release/hoppermc /usr/local/bin/hoppermc
