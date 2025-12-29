@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.4.1] - 2025-12-29
+## [0.0.5] - 2025-12-29
 
 ### Changed
 -   **Project Rename**: Renamed project from `mc-anvil-db` to **HopperMC** (`hoppermc`).

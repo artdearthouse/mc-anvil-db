@@ -10,17 +10,19 @@ impl WorldGenerator for FlatGenerator {
         let mut builder = ChunkBuilder::new();
 
         // 1. Bedrock Floor (Y=-64)
-        // In our builder, we map Y=-64 to internal logic. 
-        // Wait, our builder handles -64..320.
-        // Let's just set the bottom layer.
         builder.fill_layer(-64, "minecraft:bedrock");
 
-        // 2. Dirt Layers (-4..-1)
-        for y in -4..-1 {
+        // 2. Stone Layers (-63..-4) - The logic missing previously
+        for y in -63..-4 {
+            builder.fill_layer(y, "minecraft:stone");
+        }
+
+        // 3. Dirt Layers (-4..=-1) - Inclusive range to fill Y=-1
+        for y in -4..=-1 {
             builder.fill_layer(y, "minecraft:dirt");
         }
 
-        // 3. Grass Block (Y=0)
+        // 4. Grass Block (Y=0)
         builder.fill_layer(0, "minecraft:grass_block");
 
         // 4. TEST: A Stone Pillar at (8, Y, 8) to prove it's 3D
