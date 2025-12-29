@@ -61,6 +61,85 @@ impl PostgresStorage {
         Ok(())
     }
 }
+fn nbt_to_json(nbt: fastnbt::Value) -> serde_json::Value {
+    match nbt {
+        fastnbt::Value::Compound(c) => {
+            let mut map = serde_json::Map::new();
+            for (k, v) in c {
+                map.insert(k, nbt_to_json(v));
+            }
+            serde_json::Value::Object(map)
+        }
+        fastnbt::Value::List(l) => {
+            serde_json::Value::Array(l.into_iter().map(nbt_to_json).collect())
+        }
+        fastnbt::Value::String(s) => serde_json::Value::String(s),
+        fastnbt::Value::Byte(b) => serde_json::Value::Number(b.into()),
+        fastnbt::Value::Short(s) => serde_json::Value::Number(s.into()),
+        fastnbt::Value::Int(i) => serde_json::Value::Number(i.into()),
+        fastnbt::Value::Long(l) => serde_json::Value::Number(l.into()),
+        fastnbt::Value::Float(f) => serde_json::Value::Number(serde_json::Number::from_f64(f as f64).unwrap_or(serde_json::Number::from(0))),
+        fastnbt::Value::Double(d) => serde_json::Value::Number(serde_json::Number::from_f64(d).unwrap_or(serde_json::Number::from(0))),
+        fastnbt::Value::ByteArray(ba) => {
+            let mut map = serde_json::Map::new();
+            map.insert("__fastnbt_byte_array".to_string(), serde_json::Value::Array(ba.iter().map(|&b| serde_json::Value::Number(b.into())).collect()));
+            serde_json::Value::Object(map)
+        }
+        fastnbt::Value::IntArray(ia) => {
+            let mut map = serde_json::Map::new();
+            map.insert("__fastnbt_int_array".to_string(), serde_json::Value::Array(ia.iter().map(|&i| serde_json::Value::Number(i.into())).collect()));
+            serde_json::Value::Object(map)
+        }
+        fastnbt::Value::LongArray(la) => {
+            let mut map = serde_json::Map::new();
+            map.insert("__fastnbt_long_array".to_string(), serde_json::Value::Array(la.iter().map(|&l| serde_json::Value::Number(l.into())).collect()));
+            serde_json::Value::Object(map)
+        }
+    }
+}
+
+fn json_to_nbt(json: serde_json::Value) -> fastnbt::Value {
+    match json {
+        serde_json::Value::Object(mut map) => {
+            // Check for special tags
+            if map.len() == 1 {
+                if let Some(serde_json::Value::Array(arr)) = map.get("__fastnbt_byte_array") {
+                    let vec: Vec<i8> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i8)).collect();
+                    return fastnbt::Value::ByteArray(fastnbt::ByteArray::new(vec));
+                }
+                if let Some(serde_json::Value::Array(arr)) = map.get("__fastnbt_int_array") {
+                    let vec: Vec<i32> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i32)).collect();
+                    return fastnbt::Value::IntArray(fastnbt::IntArray::new(vec));
+                }
+                if let Some(serde_json::Value::Array(arr)) = map.get("__fastnbt_long_array") {
+                    let vec: Vec<i64> = arr.iter().filter_map(|v| v.as_i64()).collect();
+                    return fastnbt::Value::LongArray(fastnbt::LongArray::new(vec));
+                }
+            }
+            
+            let mut compound = std::collections::HashMap::new();
+            for (k, v) in map {
+                compound.insert(k, json_to_nbt(v));
+            }
+            fastnbt::Value::Compound(compound)
+        }
+        serde_json::Value::Array(arr) => {
+            fastnbt::Value::List(arr.into_iter().map(json_to_nbt).collect())
+        }
+        serde_json::Value::String(s) => fastnbt::Value::String(s),
+        serde_json::Value::Number(num) => {
+            if let Some(i) = num.as_i64() {
+                fastnbt::Value::Long(i)
+            } else if let Some(f) = num.as_f64() {
+                fastnbt::Value::Double(f)
+            } else {
+                fastnbt::Value::Double(0.0)
+            }
+        }
+        serde_json::Value::Bool(b) => fastnbt::Value::Byte(if b { 1 } else { 0 }),
+        serde_json::Value::Null => fastnbt::Value::Byte(0),
+    }
+}
 
 
 #[async_trait]
@@ -79,22 +158,15 @@ impl ChunkStorage for PostgresStorage {
                 ).await.context("Failed to insert chunk raw")?;
             }
             StorageMode::PgJsonb => {
-                // Phase 2: NBT -> JSONB
                 match fastnbt::from_bytes::<fastnbt::Value>(data) {
                     Ok(nbt_value) => {
-                        match serde_json::to_value(&nbt_value) {
-                            Ok(json_value) => {
-                                client.execute(
-                                    "INSERT INTO chunks_jsonb (x, z, data, updated_at) 
-                                     VALUES ($1, $2, $3, NOW())
-                                     ON CONFLICT (x, z) DO UPDATE SET data = $3, updated_at = NOW()",
-                                    &[&x, &z, &json_value],
-                                ).await.context("Failed to insert chunk jsonb")?;
-                            }
-                            Err(e) => {
-                                log::error!("Failed to serialize fastnbt::Value to JSON for ({}, {}): {:?}", x, z, e);
-                            }
-                        }
+                        let json_value = nbt_to_json(nbt_value);
+                        client.execute(
+                            "INSERT INTO chunks_jsonb (x, z, data, updated_at) 
+                             VALUES ($1, $2, $3, NOW())
+                             ON CONFLICT (x, z) DO UPDATE SET data = $3, updated_at = NOW()",
+                            &[&x, &z, &json_value],
+                        ).await.context("Failed to insert chunk jsonb")?;
                     }
                     Err(e) => {
                         log::error!("Failed to parse NBT for ({}, {}): {:?}", x, z, e);
@@ -128,18 +200,11 @@ impl ChunkStorage for PostgresStorage {
                  let row = client.query_opt("SELECT data FROM chunks_jsonb WHERE x = $1 AND z = $2", &[&x, &z]).await?;
                  if let Some(row) = row {
                      let json_value: serde_json::Value = row.get(0);
-                     match serde_json::from_value::<fastnbt::Value>(json_value) {
-                         Ok(nbt_value) => {
-                             match fastnbt::to_bytes(&nbt_value) {
-                                 Ok(nbt_data) => Ok(Some(nbt_data)),
-                                 Err(e) => {
-                                     log::error!("Failed to encode NBT for ({}, {}): {:?}", x, z, e);
-                                     Ok(None)
-                                 }
-                             }
-                         }
+                     let nbt_value = json_to_nbt(json_value);
+                     match fastnbt::to_bytes(&nbt_value) {
+                         Ok(nbt_data) => Ok(Some(nbt_data)),
                          Err(e) => {
-                             log::error!("Failed to deserialize JSON to fastnbt::Value for ({}, {}): {:?}", x, z, e);
+                             log::error!("Failed to encode NBT for ({}, {}): {:?}", x, z, e);
                              Ok(None)
                          }
                      }
