@@ -1,0 +1,7 @@
+target/
+.git/
+.env
+fuse_region/
+Dockerfile
+compose.yml
+README.md
