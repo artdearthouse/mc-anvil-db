@@ -800,6 +800,7 @@ dependencies = [
  "anyhow",
  "fastnbt",
  "flate2",
+ "lz4-java-wrc",
 ]
 
 [[package]]
@@ -816,7 +817,6 @@ dependencies = [
  "hoppermc-storage",
  "libc",
  "log",
- "thiserror 1.0.69",
  "tokio",
 ]
 
@@ -1346,7 +1346,7 @@ dependencies = [
  "cesu8",
  "flate2",
  "serde",
- "thiserror 2.0.17",
+ "thiserror",
 ]
 
 [[package]]
@@ -1369,7 +1369,7 @@ dependencies = [
  "serde",
  "serde_json",
  "syn",
- "thiserror 2.0.17",
+ "thiserror",
  "tokio",
  "uuid",
 ]
@@ -1405,7 +1405,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "slotmap",
- "thiserror 2.0.17",
+ "thiserror",
  "thread_local",
  "tokio",
  "tokio-util",
@@ -1805,31 +1805,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl 1.0.69",
-]
-
-[[package]]
-name = "thiserror"
 version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.17",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
+ "thiserror-impl",
 ]
 
 [[package]]

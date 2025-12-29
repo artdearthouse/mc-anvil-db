@@ -7,3 +7,4 @@ edition = "2024"
 flate2 = { workspace = true }
 anyhow = { workspace = true }
 fastnbt = { workspace = true }
+lz4-java-wrc = "0.2.0"

@@ -16,7 +16,6 @@ log = "0.4"
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
 fastnbt = "2.6"
-thiserror = "1.0"
 flate2 = "1.1"
 tokio = { version = "1", features = ["full"] }
 rand = "=0.10.0-rc.5"
@@ -25,11 +24,8 @@ rand_core = "=0.10.0-rc-2"
 # Database
 tokio-postgres = { version = "0.7", features = ["with-serde_json-1"] }
 deadpool-postgres = "0.12"
-postgis = "0.9"
-hex = "0.4"
 
-# Pumpkin
-pumpkin-nbt = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", rev = "42c903493a09a4c8d7f4eddc2644464e3871c736" }
+# Pumpkin (pinned: 2025-12-27, commit 42c9034)
+# https://github.com/Pumpkin-MC/Pumpkin/commit/42c903493a09a4c8d7f4eddc2644464e3871c736
 pumpkin-data = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", rev = "42c903493a09a4c8d7f4eddc2644464e3871c736" }
 pumpkin-world = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", rev = "42c903493a09a4c8d7f4eddc2644464e3871c736" }
-pumpkin-util = { git = "https://github.com/Pumpkin-MC/Pumpkin.git", rev = "42c903493a09a4c8d7f4eddc2644464e3871c736" }

@@ -1,8 +1,8 @@
 // Sparse Files for Emulationg Real files (so minecraft will see weight of file)
 
-use std::io::Write;
+use std::io::{Read, Write};
 use flate2::write::ZlibEncoder;
-use flate2::Compression;
+use flate2::Compression as ZlibCompression;
 
 pub const SECTOR_BYTES: u64 = 4096; // minecraft uses 4096 bytes per sector     
 pub const HEADER_BYTES: u64 = 8192; // header is 8192 bytes (2 sectors 8kb) 
@@ -38,20 +38,12 @@ pub fn generate_header() -> Vec<u8> {
         header[loc_idx + 1] = ((sector_id >> 8) & 0xFF) as u8;
         header[loc_idx + 2] = (sector_id & 0xFF) as u8;
         header[loc_idx + 3] = sector_count;
-        
-        // Debug Log first few entries
-        if i < 5 {
-             // We can't log here easily without importing log crate or using println (which might spam/not show).
-             // But we can use println! as this is low freq (only on read).
-             // Actually, this function is called on every read. Spam risk!
-             // Let's NOT log here.
-        }
     }
     header
 }
 
 pub fn compress_and_wrap_chunk(nbt_data: &[u8]) -> Option<Vec<u8>> {
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+    let mut encoder = ZlibEncoder::new(Vec::new(), ZlibCompression::default());
     if encoder.write_all(nbt_data).is_ok() {
         if let Ok(compressed) = encoder.finish() {
             // Form the chunk "Packet": [Length: 4][Type: 1][Data...]
@@ -67,31 +59,47 @@ pub fn compress_and_wrap_chunk(nbt_data: &[u8]) -> Option<Vec<u8>> {
     None
 }
 
+/// Compression types used in Minecraft Anvil format
+/// Same IDs as used by Pumpkin and vanilla Minecraft
+pub mod compression {
+    pub const GZIP: u8 = 1;
+    pub const ZLIB: u8 = 2;
+    pub const NONE: u8 = 3;
+    pub const LZ4: u8 = 4;
+}
+
+/// Unwrap and decompress a chunk blob.
+/// Supports GZip (1), ZLib (2), None (3), and LZ4 (4).
 pub fn unwrap_and_decompress_chunk(chunk_blob: &[u8]) -> anyhow::Result<Vec<u8>> {
     if chunk_blob.len() < 5 {
         anyhow::bail!("Chunk blob too short");
     }
     
-    // Parse header
-    // let len = u32::from_be_bytes([chunk_blob[0], chunk_blob[1], chunk_blob[2], chunk_blob[3]]);
+    // Parse header: [Length: 4 bytes][Type: 1 byte][Data...]
     let compression_type = chunk_blob[4];
-    
-    // Data starts at 5
     let compressed_data = &chunk_blob[5..];
     
     match compression_type {
-        2 => {
-            // Zlib
+        compression::ZLIB => {
             let mut decoder = flate2::read::ZlibDecoder::new(compressed_data);
             let mut decompressed = Vec::new();
-            std::io::Read::read_to_end(&mut decoder, &mut decompressed)?;
+            decoder.read_to_end(&mut decompressed)?;
             Ok(decompressed)
         },
-        1 => {
-            // Gzip (unused in modern MC region files usually, but spec allows it)
+        compression::GZIP => {
             let mut decoder = flate2::read::GzDecoder::new(compressed_data);
             let mut decompressed = Vec::new();
-            std::io::Read::read_to_end(&mut decoder, &mut decompressed)?;
+            decoder.read_to_end(&mut decompressed)?;
+            Ok(decompressed)
+        },
+        compression::NONE => {
+            Ok(compressed_data.to_vec())
+        },
+        compression::LZ4 => {
+            // LZ4 using same library as Pumpkin (lz4-java-wrc)
+            let mut decoder = lz4_java_wrc::Lz4BlockInput::new(compressed_data);
+            let mut decompressed = Vec::new();
+            decoder.read_to_end(&mut decompressed)?;
             Ok(decompressed)
         },
         _ => anyhow::bail!("Unknown compression type: {}", compression_type),
