@@ -1,5 +1,15 @@
 # HopperMC
 
+> [!WARNING]
+> **THIS PROJECT IS A PROOF-OF-CONCEPT (Pre-Alpha).**
+>
+> It is **NOT** ready for production use or stable gameplay.
+> Current status: **Experimental / Architectural Prototype**.
+>
+> Use at your own risk. Data persistence is currently under development.
+
+
+
 A FUSE-based virtual filesystem for Minecraft that intercepts and simulates `.mca` region files. It provides a programmable storage layer for the Anvil format, enabling on-the-fly chunk generation and virtualized world management with zero local disk footprint.
 
 ![Infinite Flat World Demo](demo/infinity_flat_demo.png)
@@ -91,8 +101,19 @@ We plan to implement multiple storage strategies for PostgreSQL, allowing users 
 
 4.  **Mode D: Weightless (RT Gen + Diffs)**
     *   **Stateless Base + Stateful Deltas.** The world is generated in real-time (RT) by the seed, and the DB only stores *differences* (modified blocks/entities).
-    *   **Pros:** "Infinite" worlds with near-zero storage footprint.
+    *   **Goal:** "Infinite" worlds with near-zero storage footprint.
     *   **Trade-off:** High CPU usage for RT generation on every read.
+
+### Future: P2P & Distributed Ecosystem
+
+We plan to evolve HopperMC into a **P2P Module** to enable scale architecture:
+
+1.  **Shared World Sharding**: Multiple Minecraft servers (shards) can run on the *same* map simultaneously. `hoppermc` acts as the distributed storage layer.
+2.  **Server Plugins (Optional)**:
+    *   We will provide lightweight plugins for **Fabric**, **NeoForge**, and **Paper**.
+    *   **Purpose**: These plugins will communicate with the `hoppermc` P2P module to sync **cross-server events**: player positions, global tab lists, chat, and **real-time visual block updates** (so changes on Server A appear instantly on Server B).
+    *   **Philosophy**: The server contains *logic*, `hoppermc` contains *data* and *state distribution*.
+3.  **HopperMC Core**: The only strictly required component. It can run locally or on a remote network node, serving chunks to any connected instance.
 
 ## Quick Start
 
