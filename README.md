@@ -134,6 +134,8 @@ DOCKER_BUILDKIT=1 docker compose up -d --build
 # 3. Connect to localhost:25565
 ```
 
+For a detailed explanation of all settings, see the [Configuration Guide](docs/CONFIGURATION.md).
+
 **Generator Options:**
 - `flat` (default) — Fast, simple flat world.
 - `vanilla` — Realistic terrain with biomes, caves, ores.
