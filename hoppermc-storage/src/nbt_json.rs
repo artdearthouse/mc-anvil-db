@@ -51,17 +51,28 @@ pub fn json_to_nbt(json: JsonValue) -> Value {
         JsonValue::Object(map) => {
             // Check for special tags
             if map.len() == 1 {
-                if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_byte_array") {
-                    let vec: Vec<i8> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i8)).collect();
-                    return Value::ByteArray(ByteArray::new(vec));
-                }
-                if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_int_array") {
-                    let vec: Vec<i32> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i32)).collect();
-                    return Value::IntArray(IntArray::new(vec));
-                }
-                if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_long_array") {
-                    let vec: Vec<i64> = arr.iter().filter_map(|v| v.as_i64()).collect();
-                    return Value::LongArray(LongArray::new(vec));
+                // Try native fastnbt restoration first (handles byte-oriented arrays from previous versions)
+                if map.contains_key("__fastnbt_byte_array") || 
+                   map.contains_key("__fastnbt_int_array") || 
+                   map.contains_key("__fastnbt_long_array") {
+                    
+                    if let Ok(v) = serde_json::from_value::<Value>(JsonValue::Object(map.clone())) {
+                        return v;
+                    }
+
+                    // Fallback to our "human readable" format (array of ints)
+                    if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_byte_array") {
+                        let vec: Vec<i8> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i8)).collect();
+                        return Value::ByteArray(ByteArray::new(vec));
+                    }
+                    if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_int_array") {
+                        let vec: Vec<i32> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i32)).collect();
+                        return Value::IntArray(IntArray::new(vec));
+                    }
+                    if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_long_array") {
+                        let vec: Vec<i64> = arr.iter().filter_map(|v| v.as_i64()).collect();
+                        return Value::LongArray(LongArray::new(vec));
+                    }
                 }
             }
 
@@ -84,5 +95,51 @@ pub fn json_to_nbt(json: JsonValue) -> Value {
         }
         JsonValue::Bool(b) => Value::Byte(if b { 1 } else { 0 }),
         JsonValue::Null => Value::Byte(0),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fastnbt::{LongArray, Value};
+
+    #[test]
+    fn test_long_array_roundtrip() {
+        let longs = vec![1, 2, 3, 4096];
+        let nbt = Value::LongArray(LongArray::new(longs.clone()));
+        let json = nbt_to_json(nbt.clone());
+        let restored = json_to_nbt(json);
+        
+        if let Value::LongArray(la) = restored {
+            assert_eq!(la.iter().copied().collect::<Vec<_>>(), longs);
+        } else {
+            panic!("Restored as wrong type: {:?}", restored);
+        }
+    }
+
+    #[test]
+    fn test_native_bytes_restoration() {
+        // Simulates data saved by fastnbt's native Serialize (8 bytes per long)
+        let json = serde_json::json!({
+            "__fastnbt_long_array": [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,2]
+        });
+        let restored = json_to_nbt(json);
+        if let Value::LongArray(la) = restored {
+            assert_eq!(la.iter().copied().collect::<Vec<_>>(), vec![1, 2]);
+        } else {
+            panic!("Failed to restore native bytes: {:?}", restored);
+        }
+    }
+
+    #[test]
+    fn test_legacy_list_restoration() {
+        // Simulates even older data or simple lists
+        let json = serde_json::json!([1, 2, 3]);
+        let restored = json_to_nbt(json);
+        if let Value::List(l) = restored {
+            assert_eq!(l.len(), 3);
+        } else {
+            panic!("Restored as wrong type: {:?}", restored);
+        }
     }
 }
