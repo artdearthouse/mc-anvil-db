@@ -6,7 +6,7 @@
 > It is **NOT** ready for production use or stable gameplay.
 > Current status: **Experimental / Architectural Prototype**.
 >
-> Use at your own risk. Data persistence is currently under development.
+> Use at your own risk. Data persistence is available (Proof of Concept), but can be unstable.
 
 
 
@@ -26,6 +26,7 @@ Currently, this project acts as a **Stateless Infinite Flat World Generator**.
 - [x] 🐳 **Docker-first**: Runs in a container with FUSE permissions (`/dev/fuse`).
 - [x] ⚡ **Fast Builds**: Docker pipeline optimized with Workspace Cache Mounts.
 - [x] 🛠 **Generic File Support**: Handles auxiliary files (like backups) gracefully to prevent server crashes.
+- [x] 💾 **Persistence**: Changes are saved to PostgreSQL (Proof of Concept).
 
 ## Vision & Goals
 
@@ -78,7 +79,7 @@ This project is not just a filesystem; it is a **Universal Storage Middleware** 
 | Backend | Status | Use Case |
 |---------|--------|----------|
 | **Stateless Generator** | ✅ **Active** | Infinite flat world, testing |
-| `PostgresStorage` | 🛠 **Ready for Dev** | Environment included, code structures present |
+| `PostgresStorage` | ✅ **Active (POC)** | Persistence enabled (Raw Mode) |
 | `MemoryStorage` | 🚧 Planned | Fast temporary storage |
 
 ### Planned Storage Modes
@@ -130,7 +131,7 @@ This starts:
 - `hoppermc`: The FUSE filesystem mounting to `/mnt/region`.
 - `minecraft`: A Paper server configured to use the FUSE mount.
 
-**Note:** Any blocks you place or destroy **will NOT be saved** in the current "Stateless" mode. The server "writes" the data, but the FUSE layer simply acknowledges the write without persisting it.
+**Note:** Changes are now saved to the PostgreSQL database! This is a Proof of Concept implementation.
 
 ## How It Works
 
