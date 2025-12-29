@@ -333,8 +333,16 @@ impl VirtualFile {
                     }
                     
                     // 4. Generate & Save
-                    match generator.generate_chunk(tx, tz, &rt_handle, benchmark.as_deref()) {
-                        Ok(nbt) => {
+                    let gen_ref = generator.clone();
+                    let rt = rt_handle.clone();
+                    let bench = benchmark.clone();
+
+                    let res = tokio::task::spawn_blocking(move || {
+                        gen_ref.generate_chunk(tx, tz, &rt, bench.as_deref())
+                    }).await;
+
+                    match res {
+                        Ok(Ok(nbt)) => {
                              // Save to DB
                              if let Some(storage) = &storage {
                                  let _ = storage.save_chunk(tx, tz, &nbt).await;
@@ -345,8 +353,11 @@ impl VirtualFile {
                                  cache.lock().unwrap().put((tx, tz), blob);
                              }
                         },
+                        Ok(Err(e)) => {
+                             log::warn!("Prefetch generation failed for ({}, {}): {:?}", tx, tz, e);
+                        },
                         Err(e) => {
-                             log::warn!("Prefetch failed for ({}, {}): {:?}", tx, tz, e);
+                             log::warn!("Prefetch task join failed for ({}, {}): {:?}", tx, tz, e);
                         }
                     }
                 }
