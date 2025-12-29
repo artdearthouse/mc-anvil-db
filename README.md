@@ -161,8 +161,10 @@ This starts:
 
 ## Troubleshooting
 
--   **"Transparent Chunks"**: If you see transparent chunks that you can walk on, it usually means the server read "0 bytes" (EOF) unexpectedly. This has been fixed in v0.0.3 by correcting inode packing logic.
--   **Panic on Join**: If `hoppermc` crashes with `index out of bounds` in `pumpkin-world`, ensure you are initializing `ChunkLight` with 24 sections in the builder (Fixed in recent updates).
+-   **FUSE Mount Error**: If the program complains about a busy endpoint or fails to start, try unmounting manually:
+    ```bash
+    sudo fusermount -uz ./fuse_region
+    ```
 
 ## Acknowledgments
 
