@@ -2,26 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.6-pre3] - 2025-12-29 (Unreleased)
+## [0.0.6-pre3] - 2025-12-30 (Unreleased)
 
 ### Added
--   **Storage Mode Selection**: New `STORAGE` env var / `--storage` CLI arg to choose storage backend.
-    -   `raw` (default) — Persist chunks to PostgreSQL.
-    -   `nostorage` — Fully stateless mode, all chunks generated on-the-fly. No DB required.
+-   **Configurable Pre-generation**: New `--prefetch-radius` arg to proactively generate chunks around the player.
+-   **Concurrent Prefetching**: Background pre-generation tasks now run concurrently (up to 2 parallel tasks) for faster world warming.
 
 ### Performance
+-   **Internal Parallelism (Rayon)**: Integrated `rayon` into `hoppermc-gen` to parallelize data conversion loops (biomes/blocks), effectively utilizing all CPU cores.
+-   **Docker Build Optimization**: 
+    -   Added cache mounts for Git dependencies (`/usr/local/cargo/git`), avoiding redundant Pumpkin downloads.
+    -   Fixed `RUSTFLAGS` mismatch between dependency caching and final build, ensuring consistent cache usage.
 -   **LRU Chunk Cache**: Implemented in-memory LRU cache (`hoppermc-fs`) to store generated/loaded chunk blobs. Reduces redundant generation and I/O. Configurable via `--cache-size` (default: 500 chunks).
 -   **Parallel FUSE I/O**: Refactored I/O handling to use a thread-per-request model, preventing file system operations from blocking the main loop. Significantly reduces "transparent chunk" issues during flight.
 -   **Runtime Optimization**: Eliminated per-chunk `tokio::runtime` creation overhead.
 
-### Internal
--   **Benchmark System**:
-    -   **Usage**: `BENCHMARK=true` prints report on exit.
-    -   **Refactor**: Extracted core logic to `hoppermc-benchmark` crate for cross-crate usage.
-    -   **Metrics**: Tracks generation time (avg/max), storage I/O, and chunk throughput.
-    -   **Reporting**: Automatically saves session reports to `benchmarks/benchmark-{timestamp}.txt`.
-    -   **Granular Logic**: Logic time is now broken down into `Biomes`, `Noise` (Terrain), `Surface Rules`, and `Data Conversion` to pinpoint generator bottlenecks.
-    -   **FUSE Profiling**: Added direct measurement of filesystem `read_at` Latency, Throughput (MB/s), and Compression Ratio to isolate FUSE overhead from generation time.
+### Storage & Metrics
+-   **World Weight Tracking**: Benchmark reports now include:
+    *   **Estimated MCA Size**: Calculated based on standard Minecraft Anvil format overhead.
+    *   **Actual DB Size**: Real table size from PostgreSQL.
+    *   **Efficiency Ratio**: Comparison of storage density between DB and MCA.
+-   **Postgres Size Query**: Added `get_total_size` support to `ChunkStorage` trait and `PostgresStorage`.
+-   **Granular Logic**: Logic time is now broken down into `Biomes`, `Noise` (Terrain), `Surface Rules`, and `Data Conversion` to pinpoint generator bottlenecks.
+-   **FUSE Profiling**: Added direct measurement of filesystem `read_at` Latency, Throughput (MB/s), and Compression Ratio.
+-   **Storage Mode Selection**: choose between `raw` (Postgres) and `nostorage` (Stateless).
 
 ---
 

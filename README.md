@@ -19,16 +19,16 @@ A FUSE-based virtual filesystem for Minecraft that intercepts and simulates `.mc
 Currently, this project acts as a **Stateless Infinite World Generator** with multiple terrain modes.
 
 **Key Features:**
+- [x] 🏎️ **Parallel Generation**: Internal Rayon parallelization (data conversion) and concurrent neighbor prefetching to hide latency.
 - [x] 🚀 **Infinite World**: Generates chunks procedurally as Minecraft requests them (Stateless).
 - [x] 🔄 **Negative Coordinates**: Fully supports infinite exploration in all directions (negative X/Z).
 - [x] 🎃 **Pumpkin-Powered Generator**: Uses [Pumpkin-MC](https://github.com/Pumpkin-MC/Pumpkin) for robust and efficient chunk generation and NBT serialization.
 - [x] 🏔️ **Vanilla Terrain (Experimental)**: Realistic terrain with biomes, caves, and surface rules via Pumpkin's staged generation.
-- [x] 📁 **Anvil Format**: Emulates standard Minecraft region headers and chunk data (Works with Paper 1.21+).
-- [x] 📦 **Compression Support**: Handles GZip, ZLib, and LZ4 (Minecraft 24w04a+) compressed chunks.
-- [x] 🐳 **Docker-first**: Runs in a container with FUSE permissions (`/dev/fuse`).
-- [x] ⚡ **Fast Builds**: Docker pipeline optimized with Workspace Cache Mounts.
-- [x] 🛠 **Generic File Support**: Handles auxiliary files (like backups) gracefully to prevent server crashes.
-- [x] 💾 **Persistence**: Changes are saved to PostgreSQL (Proof of Concept).
+- [x] ⚡ **Performance Benchmarking**: Integrated profiling system breaking down latency by logic steps (Noise/Surface/Biomes).
+- [x] 💾 **Persistence**: Changes are saved to PostgreSQL with real-time storage metrics (DB size vs MCA size).
+- [x] 📁 **Anvil Format**: Emulates standard Minecraft region headers and chunk data.
+- [x] 📦 **Compression Support**: Handles ZLib and LZ4 (Minecraft 24w04a+) compressed chunks.
+- [x] ⚡ **Optimized Builds**: Docker pipeline with Git dependency caching and native CPU optimizations.
 
 ## Vision & Goals
 

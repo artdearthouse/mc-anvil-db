@@ -33,8 +33,8 @@ The project is a workspace divided into 6 crates:
 **Key Types**: `BenchmarkMetrics`.
 - Uses `AtomicU64`/`AtomicUsize` for thread-safe counting without locks.
 - Tracks:
-- Matches:
-    - **Generation Logic**: Granular breakdown of `Biomes` (grid), `Noise` (terrain), `Surface` (blocks), and `Conversion`.
+    - **Generation Logic**: Granular breakdown of `Biomes`, `Noise` (terrain), `Surface`, and `Conversion`.
+    - **World Weight**: Tracks actual PostgreSQL table size and compares it with an estimated MCA file size (Efficiency metric).
     - **Filesystem (FUSE)**: Tracks `read_at` Latency, Throughput (MB/s), and Compression Ratios.
     - **I/O**: Cache Hits/Misses, Serialization, Compression.
 - **Reporting**: Prints a detailed summary to `benchmarks/` on shutdown.
@@ -63,6 +63,7 @@ The project is a workspace divided into 6 crates:
         2.  **Noise**: Generates terrain height/density (Perlin/Simplex).
         3.  **Surface**: Replaces stone with Grass/Sand/Snow.
         4.  **Conversion**: Transforms `ProtoChunk` -> `ChunkData`.
+    - Uses **Rayon** to parallelize final block and biome conversion loops across all cores.
     - Heavy on CPU (uses SIMD if enabled).
 
 2.  **`FlatGenerator`**:
@@ -85,6 +86,7 @@ The project is a workspace divided into 6 crates:
     - Checks **LRU Cache**.
     - If miss: Calls `generator.generate_chunk()`.
     - Compresses resultant NBT.
+    - **Prefetch Radius**: If enabled, spawns concurrent background tasks to warm up neighbors of the requested chunk.
     - Records **FUSE Metrics** (Latency, Size).
     - Returns byte slice to Minecraft.
 4.  **`write_at`**:
