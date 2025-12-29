@@ -71,6 +71,29 @@ This project is not just a filesystem; it is a **Universal Storage Middleware** 
 | `PostgresStorage` | 🛠 **Ready for Dev** | Environment included, code structures present |
 | `MemoryStorage` | 🚧 Planned | Fast temporary storage |
 
+### Planned Storage Modes
+
+We plan to implement multiple storage strategies for PostgreSQL, allowing users to choose the best trade-off for their needs:
+
+1.  **Mode A: Raw Blob (NBT)**
+    *   Store chunks as raw, uncompressed NBT binary blobs (`BYTEA`).
+    *   **Pros:** Fastest implementation, ensures data integrity, 1:1 mapping with generation.
+    *   **Flow:** `Decompress` -> `DB` -> `FUSE`.
+
+2.  **Mode B: JSONB**
+    *   Convert NBT to JSON on-the-fly and store in `JSONB` columns.
+    *   **Pros:** Allows querying chunk data (e.g., "Find all chunks with Diamond Ore").
+    *   **Trade-off:** Higher CPU usage for conversion.
+
+3.  **Mode C: Hybrid Structured**
+    *   Extract heavy numerical data (coordinates, timestamps, palettes) into optimized SQL columns (`SMALLINT`, `INTEGER`, `BIGINT`). Use `JSONB` only for flexible metadata.
+    *   **Pros:** Maximum storage efficiency and query speed. Replaces repeated strings with normalized ID lookups.
+
+4.  **Mode D: Weightless (RT Gen + Diffs)**
+    *   **Stateless Base + Stateful Deltas.** The world is generated in real-time (RT) by the seed, and the DB only stores *differences* (modified blocks/entities).
+    *   **Pros:** "Infinite" worlds with near-zero storage footprint.
+    *   **Trade-off:** High CPU usage for RT generation on every read.
+
 ## Quick Start
 
 ### With Docker (Recommended)
