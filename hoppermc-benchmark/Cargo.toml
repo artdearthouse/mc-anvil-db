@@ -1,6 +1,6 @@
 [package]
 name = "hoppermc-benchmark"
-version = "0.0.6-pre5"
+version = "0.0.6-pre6"
 edition = "2024"
 
 [dependencies]
