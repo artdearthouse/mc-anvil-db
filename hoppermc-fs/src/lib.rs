@@ -196,7 +196,9 @@ impl Filesystem for McFUSE {
 
         let mut attr = FILE_ATTR_TEMPLATE;
         attr.ino = ino;
-        attr.size = 0; // Start empty
+        if !inode::is_region_inode(ino) {
+            attr.size = 0; // Generic files start empty
+        }
         attr.uid = req.uid(); attr.gid = req.gid();
         
         reply.created(&Duration::from_secs(1), &attr, 0, 0, 0);

@@ -14,6 +14,7 @@ pub struct VirtualFile {
     pub cache: Arc<Mutex<LruCache<(i32, i32), Vec<u8>>>>,
     pub prefetch_radius: u8,
     pub prefetch_limiter: Arc<tokio::sync::Semaphore>,
+    header_cache: Vec<u8>, // Cached header
 }
 
 impl VirtualFile {
@@ -37,6 +38,7 @@ impl VirtualFile {
             cache: Arc::new(Mutex::new(LruCache::new(cap))),
             prefetch_radius,
             prefetch_limiter: limiter,
+            header_cache: region::generate_header(),
         }
     }
 
@@ -45,17 +47,15 @@ impl VirtualFile {
 
         // --- 1. HEADER GENERATION (0..8192) ---
         if offset < region::HEADER_BYTES {
-            let header = region::generate_header();
-            
             // Debug: Log first few bytes
             if offset == 0 {
-                log::info!("Header Generated. Bytes 0..16: {:02X?}", &header[0..16]);
+                log::debug!("Region r.{}.{} Read Header at 0, size {}", region_x, region_z, size);
             }
 
             let start_in_header = offset as usize;
             let end_in_header = std::cmp::min(start_in_header + size, region::HEADER_BYTES as usize);
             if start_in_header < region::HEADER_BYTES as usize {
-                response_data.extend_from_slice(&header[start_in_header..end_in_header]);
+                response_data.extend_from_slice(&self.header_cache[start_in_header..end_in_header]);
             }
         }
 
@@ -207,6 +207,10 @@ impl VirtualFile {
         // Record Total Request Time
         if let Some(bench) = &self.benchmark {
             bench.record_fuse_request(start_fuse.elapsed(), response_data.len());
+        }
+
+        if response_data.len() == 0 && size > 0 {
+            log::warn!("CRITICAL: read_at returning 0 bytes for non-zero request size {} at offset {} (r.{}.{})", size, offset, region_x, region_z);
         }
 
         response_data

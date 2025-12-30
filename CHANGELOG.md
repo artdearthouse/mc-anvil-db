@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.6-pre4] - Unreleased
+## [0.0.6-pre4] - 2025-12-30
 
 ### Added
 -   **PgJsonb Mode**: Support for structured JSON storage in PostgreSQL (NBT ↔ JSONB conversion).
 -   **Robust NBT-JSON Mapping**: Custom conversion logic for `PgJsonb` mode that handles untyped JSON numbers and preserves NBT array types (ByteArray/IntArray/LongArray) using special tags.
+-   **Region Header Caching**: Optimized FUSE performance by caching the 8KB region header instead of regenerating it for every read request.
 -   **Storage Mode Refactoring**: Internal storage logic updated to support backend-specific naming (`pg_raw` vs `pg_jsonb`).
+
+### Fixed
+-   **Region Header Truncation**: Fixed a critical bug where newly created `.mca` files were reported as 0 bytes, causing Minecraft to fail the first read attempt. FUSE now correctly reports the full virtual size during `create`.
+-   **NBT-JSON Data Integrity**: Hardened NBT-to-JSON conversion to strictly preserve array types (`LongArray`, `IntArray`, `ByteArray`) using special tagging. This prevents loss of type information during `PgJsonb` storage for fields like `SkyLight` and `BlockLight`.
+-   **Ambiguous List Restoration**: Resolved an issue where lists of small integers could be misinterpreted as packed arrays during JSON → NBT restoration.
 
 ### Changed
 -   **Modular Storage Refactor**: Moved NBT-JSON conversion logic into a dedicated `nbt_json` module within `hoppermc-storage` for better maintainability and testability.
