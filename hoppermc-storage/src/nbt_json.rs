@@ -51,28 +51,17 @@ pub fn json_to_nbt(json: JsonValue) -> Value {
         JsonValue::Object(map) => {
             // Check for special tags
             if map.len() == 1 {
-                // Try native fastnbt restoration first (handles byte-oriented arrays from previous versions)
-                if map.contains_key("__fastnbt_byte_array") || 
-                   map.contains_key("__fastnbt_int_array") || 
-                   map.contains_key("__fastnbt_long_array") {
-                    
-                    if let Ok(v) = serde_json::from_value::<Value>(JsonValue::Object(map.clone())) {
-                        return v;
-                    }
-
-                    // Fallback to our "human readable" format (array of ints)
-                    if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_byte_array") {
-                        let vec: Vec<i8> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i8)).collect();
-                        return Value::ByteArray(ByteArray::new(vec));
-                    }
-                    if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_int_array") {
-                        let vec: Vec<i32> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i32)).collect();
-                        return Value::IntArray(IntArray::new(vec));
-                    }
-                    if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_long_array") {
-                        let vec: Vec<i64> = arr.iter().filter_map(|v| v.as_i64()).collect();
-                        return Value::LongArray(LongArray::new(vec));
-                    }
+                if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_byte_array") {
+                    let vec: Vec<i8> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i8)).collect();
+                    return Value::ByteArray(ByteArray::new(vec));
+                }
+                if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_int_array") {
+                    let vec: Vec<i32> = arr.iter().filter_map(|v| v.as_i64().map(|i| i as i32)).collect();
+                    return Value::IntArray(IntArray::new(vec));
+                }
+                if let Some(JsonValue::Array(arr)) = map.get("__fastnbt_long_array") {
+                    let vec: Vec<i64> = arr.iter().filter_map(|v| v.as_i64()).collect();
+                    return Value::LongArray(LongArray::new(vec));
                 }
             }
 
@@ -118,22 +107,23 @@ mod tests {
     }
 
     #[test]
-    fn test_native_bytes_restoration() {
-        // Simulates data saved by fastnbt's native Serialize (8 bytes per long)
-        let json = serde_json::json!({
-            "__fastnbt_long_array": [0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,2]
-        });
+    fn test_list_of_ints_roundtrip() {
+        // Test that 256 zeros stay 256 zeros and don't become 32 longs
+        let longs = vec![0i64; 256];
+        let nbt = Value::LongArray(LongArray::new(longs.clone()));
+        let json = nbt_to_json(nbt.clone());
         let restored = json_to_nbt(json);
+        
         if let Value::LongArray(la) = restored {
-            assert_eq!(la.iter().copied().collect::<Vec<_>>(), vec![1, 2]);
+            assert_eq!(la.len(), 256);
+            assert_eq!(la.iter().copied().collect::<Vec<_>>(), longs);
         } else {
-            panic!("Failed to restore native bytes: {:?}", restored);
+            panic!("Restored as wrong type: {:?}", restored);
         }
     }
 
     #[test]
     fn test_legacy_list_restoration() {
-        // Simulates even older data or simple lists
         let json = serde_json::json!([1, 2, 3]);
         let restored = json_to_nbt(json);
         if let Value::List(l) = restored {
